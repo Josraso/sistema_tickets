@@ -46,7 +46,7 @@ if (!extension_loaded('imap')) {
 }
 
 // Conectar
-$ssl_flag = $IMAP_SSL ? '/ssl' : '';
+$ssl_flag = $IMAP_SSL ? '/ssl/novalidate-cert' : '';
 $connection_string = "{" . $IMAP_HOST . ":" . $IMAP_PORT . $ssl_flag . "}" . $IMAP_MAILBOX;
 
 $imap = @imap_open($connection_string, $IMAP_USER, $IMAP_PASS);
