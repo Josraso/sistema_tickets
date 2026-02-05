@@ -199,9 +199,22 @@ Cuando un cliente responde al email <strong>ticket+ID@<?=e(obtenerConfig('domini
 
 <hr>
 <h6><i class="bi bi-clock-repeat"></i> Cron en Plesk</h6>
-<p class="text-muted small">Ve a <strong>Plesk → Dominios → [tu dominio] → Programador de tareas</strong> y añade una tarea nueva con frecuencia <strong>cada 1 minuto</strong>:</p>
-<div class="bg-light border rounded p-2 mb-2"><code class="small">php /var/www/vhost/[tudominio]/docroot/imap_poll.php</code></div>
-<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle"></i> La ruta <code>/var/www/vhost/[tudominio]/docroot/</code> es un ejemplo. Comprueba la ruta real de tu dominio en Plesk → Info del dominio.</div>
+<p class="text-muted small">Ve a <strong>Plesk → Dominios → [tu dominio] → Programador de tareas</strong> y añade una tarea nueva con frecuencia <strong>cada 1 minuto</strong>. Tienes dos opciones:</p>
+
+<p class="text-muted small mb-1"><strong>Opción A — Comando (ruta física del archivo):</strong></p>
+<div class="bg-light border rounded p-2 mb-2 d-flex align-items-center justify-content-between gap-2">
+<code class="small" id="cmdRuta">php <?=realpath(__DIR__ . '/../imap_poll.php') ?: '— archivo no encontrado —'?></code>
+<button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" onclick="copiarCodigo('cmdRuta', this)"><i class="bi bi-clipboard"></i> Copiar</button>
+</div>
+
+<p class="text-muted small mb-1"><strong>Opción B — URL completa:</strong></p>
+<div class="bg-light border rounded p-2 mb-2 d-flex align-items-center justify-content-between gap-2">
+<code class="small" id="cmdURL"><?=rtrim(obtenerConfig('dominio_base','https://tudominio.com'), '/') . '/imap_poll.php'?></code>
+<button type="button" class="btn btn-sm btn-outline-secondary flex-shrink-0" onclick="copiarCodigo('cmdURL', this)"><i class="bi bi-clipboard"></i> Copiar</button>
+</div>
+
+<div class="alert alert-info small mt-2"><i class="bi bi-info-circle"></i>
+En Plesk al crear la tarea puedes elegir <strong>Comando</strong> (opción A, pone la línea completa con <code>php</code>) o <strong>URL</strong> (opción B, solo la URL, Plesk la invoca con curl). Ambas hacen lo mismo.</div>
 </div></div>
 </div>
 </div><!-- /tab-content -->
@@ -225,6 +238,18 @@ if (selSec) {
         var puertos = {none:'25', starttls:'587', ssl:'465'};
         document.getElementById('smtp_port').value = puertos[this.value] || '587';
     });
+}
+// Copiar texto de un elemento al clipboard
+function copiarCodigo(id, btn) {
+    var txt = document.getElementById(id).textContent.trim();
+    var range = document.createRange();
+    var el = document.getElementById(id);
+    range.selectNode(el);
+    window.getSelection().removeAllRanges();
+    window.getSelection().addRange(range);
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+    if (btn) { btn.innerHTML = '<i class="bi bi-check-lg"></i> ¡Copiado!'; setTimeout(function(){ btn.innerHTML = '<i class="bi bi-clipboard"></i> Copiar'; }, 1500); }
 }
 // Auto-cambiar puerto al seleccionar cifrado IMAP
 var selImapSec = document.getElementById('imap_security');
