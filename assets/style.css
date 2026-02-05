@@ -45,6 +45,12 @@ body {
 /* Filtros */
 .filtros { background: #fff; border-radius: 10px; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
 
+/* Prioridades visuales en listados */
+.prio-baja { border-left: 4px solid #28a745 !important; }
+.prio-media { border-left: 4px solid #ffc107 !important; }
+.prio-alta { border-left: 4px solid #fd7e14 !important; }
+.prio-critica { border-left: 4px solid #dc3545 !important; font-weight: 600; }
+
 /* Tags */
 .tag-badge { font-size: 0.78rem; padding: 0.25em 0.6em; border-radius: 12px; margin-right: 3px; font-weight: 600; }
 

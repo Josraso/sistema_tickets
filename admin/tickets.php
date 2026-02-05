@@ -137,7 +137,8 @@ $exp_url = 'tickets.php?' . http_build_query($exp_params);
 <?php if (empty($tickets)): ?><tr><td colspan="9" class="text-center text-muted py-4">Sin tickets</td></tr><?php endif; ?>
 <?php foreach ($tickets as $t): ?>
 <?php $tags = obtenerTagsTicket($t['id']); ?>
-<tr <?php if($t['tiene_incidencia']): ?>class="table-danger"<?php elseif($t['resp_nuevas']>0): ?>class="table-info"<?php endif; ?>>
+<?php $clases = ['prio-' . $t['prioridad']]; if($t['tiene_incidencia']) $clases[] = 'table-danger'; elseif($t['resp_nuevas']>0) $clases[] = 'table-info'; ?>
+<tr class="<?=implode(' ', $clases)?>"><?php unset($clases); ?>
 <td><strong>#<?=$t['id']?></strong></td>
 <td><?=e($t['cliente_nombre'])?></td>
 <td><?=e($t['asunto'])?>

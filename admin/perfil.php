@@ -12,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre   = limpiar($_POST['nombre'] ?? '');
     $email    = limpiar($_POST['email'] ?? '');
     $telefono = limpiar($_POST['telefono'] ?? '');
+    $firma    = limpiar($_POST['firma'] ?? '');
     $pass     = $_POST['password'] ?? '';
     $pass2    = $_POST['password2'] ?? '';
 
@@ -23,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($st->fetch()) {
             $error = 'Ese email ya está en uso por otra cuenta';
         } else {
-            $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, telefono = ? WHERE id = ?")->execute([$nombre, $email, $telefono, $uid]);
+            $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, telefono = ?, firma = ? WHERE id = ?")->execute([$nombre, $email, $telefono, $firma, $uid]);
             $_SESSION['usuario_nombre'] = $nombre;
 
             if (!empty($pass) || !empty($pass2)) {
@@ -41,9 +42,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
+// CRUD respuestas rápidas
+if (isset($_POST['accion_rr'])) {
+    verificarTokenCSRF();
+    $accion = $_POST['accion_rr'];
+    if ($accion === 'crear') {
+        $titulo = limpiar($_POST['rr_titulo'] ?? '');
+        $contenido = limpiar($_POST['rr_contenido'] ?? '');
+        if (!empty($titulo) && !empty($contenido)) {
+            $db->prepare("INSERT INTO respuestas_rapidas (usuario_id, titulo, contenido) VALUES (?, ?, ?)")->execute([$uid, $titulo, $contenido]);
+            $success = 'Respuesta rápida creada';
+        }
+    } elseif ($accion === 'eliminar') {
+        $rr_id = (int)($_POST['rr_id'] ?? 0);
+        $db->prepare("DELETE FROM respuestas_rapidas WHERE id = ? AND usuario_id = ?")->execute([$rr_id, $uid]);
+        $success = 'Respuesta rápida eliminada';
+    }
+}
+
 $st = $db->prepare("SELECT * FROM usuarios WHERE id = ?");
 $st->execute([$uid]);
 $usuario = $st->fetch();
+
+// Obtener respuestas rápidas del usuario
+$respuestas_rapidas = $db->prepare("SELECT * FROM respuestas_rapidas WHERE usuario_id = ? ORDER BY titulo");
+$respuestas_rapidas->execute([$uid]);
+$rr_list = $respuestas_rapidas->fetchAll();
 
 include 'includes/header.php';
 ?>
@@ -69,6 +93,11 @@ include 'includes/header.php';
 <div class="mb-3">
 <label class="form-label"><i class="bi bi-phone"></i> Teléfono móvil</label>
 <input type="tel" name="telefono" class="form-control" value="<?=e($usuario['telefono'])?>" placeholder="+34 612 345 678">
+</div>
+<div class="mb-3">
+<label class="form-label"><i class="bi bi-pencil-square"></i> Firma (aparece al final de tus respuestas)</label>
+<textarea name="firma" class="form-control" rows="3" placeholder="Ejemplo: Saludos,&#10;Juan Pérez&#10;Soporte Técnico"><?=e($usuario['firma'] ?? '')?></textarea>
+<div class="form-text">La firma se añadirá automáticamente al final de cada respuesta que envíes</div>
 </div>
 <hr>
 <h6><i class="bi bi-lock"></i> Cambiar contraseña</h6>
@@ -103,4 +132,68 @@ include 'includes/header.php';
 </div></div>
 </div>
 </div>
+
+<!-- Respuestas rápidas -->
+<div class="card mt-3">
+<div class="card-header d-flex justify-content-between align-items-center">
+<span><i class="bi bi-lightning"></i> Respuestas Rápidas</span>
+<button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#modalRR"><i class="bi bi-plus-lg"></i> Nueva</button>
+</div>
+<div class="card-body">
+<p class="text-muted small">Guarda respuestas que usas frecuentemente para insertarlas con un clic al responder tickets.</p>
+<?php if (empty($rr_list)): ?>
+<div class="alert alert-info small"><i class="bi bi-info-circle"></i> No tienes respuestas rápidas. Crea una para empezar.</div>
+<?php else: ?>
+<div class="table-responsive">
+<table class="table table-sm table-hover mb-0">
+<thead><tr><th>Título</th><th>Contenido</th><th></th></tr></thead>
+<tbody>
+<?php foreach ($rr_list as $rr): ?>
+<tr>
+<td><strong><?=e($rr['titulo'])?></strong></td>
+<td class="small"><?=e(mb_substr($rr['contenido'], 0, 80) . (mb_strlen($rr['contenido']) > 80 ? '...' : ''))?></td>
+<td>
+<form method="post" style="display:inline" onsubmit="return confirm('¿Eliminar?')"><?=csrfInput()?>
+<input type="hidden" name="accion_rr" value="eliminar">
+<input type="hidden" name="rr_id" value="<?=$rr['id']?>">
+<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+</form>
+</td>
+</tr>
+<?php endforeach; ?>
+</tbody>
+</table>
+</div>
+<?php endif; ?>
+</div>
+</div>
+
+<!-- Modal crear respuesta rápida -->
+<div class="modal fade" id="modalRR" tabindex="-1">
+<div class="modal-dialog"><div class="modal-content">
+<form method="post">
+<?=csrfInput()?>
+<input type="hidden" name="accion_rr" value="crear">
+<div class="modal-header">
+<h5 class="modal-title"><i class="bi bi-lightning"></i> Nueva Respuesta Rápida</h5>
+<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body">
+<div class="mb-3">
+<label class="form-label">Título *</label>
+<input type="text" name="rr_titulo" class="form-control" placeholder="Ej: Ticket resuelto" required>
+</div>
+<div class="mb-3">
+<label class="form-label">Contenido *</label>
+<textarea name="rr_contenido" class="form-control" rows="4" placeholder="Ej: Hemos revisado tu ticket y el problema ha sido resuelto. Por favor, confirma que todo funciona correctamente." required></textarea>
+</div>
+</div>
+<div class="modal-footer">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+<button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i> Crear</button>
+</div>
+</form>
+</div></div>
+</div>
+
 <?php include 'includes/footer.php'; ?>

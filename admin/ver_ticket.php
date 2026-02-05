@@ -10,6 +10,16 @@ $st = $db->prepare("SELECT t.*, w.nombre as web_nombre, u.nombre as cliente_nomb
 $st->execute([$tid]); $ticket = $st->fetch();
 if (!$ticket) redirigir('tickets.php');
 
+// Obtener firma del admin actual para respuestas
+$st_firma = $db->prepare("SELECT firma FROM usuarios WHERE id = ?");
+$st_firma->execute([$_SESSION['usuario_id']]);
+$admin_firma = $st_firma->fetch()['firma'] ?? '';
+
+// Obtener respuestas rápidas del admin
+$st_rr = $db->prepare("SELECT * FROM respuestas_rapidas WHERE usuario_id = ? ORDER BY titulo");
+$st_rr->execute([$_SESSION['usuario_id']]);
+$respuestas_rapidas = $st_rr->fetchAll();
+
 // Cambio estado
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_estado'])) {
     verificarTokenCSRF();
@@ -51,6 +61,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['responder'])) {
     $msg = limpiar($_POST['mensaje'] ?? '');
     $es_nota = isset($_POST['es_nota_interna']) ? 1 : 0;
     if (!empty($msg)) {
+        // Añadir firma si existe y no es nota interna
+        if (!$es_nota && !empty($admin_firma)) {
+            $msg .= "\n\n---\n" . $admin_firma;
+        }
         $db->prepare("INSERT INTO respuestas (ticket_id, usuario_id, mensaje, es_nota_interna) VALUES (?, ?, ?, ?)")
            ->execute([$tid, $_SESSION['usuario_id'], $msg, $es_nota]);
         $rid = $db->lastInsertId();
@@ -196,7 +210,15 @@ include 'includes/header.php';
 <label class="form-check-label small" for="chkNota"><i class="bi bi-lock"></i> Nota interna (invisible al cliente)</label>
 </div>
 </div>
-<textarea name="mensaje" class="form-control" rows="4" required></textarea>
+<?php if (!empty($respuestas_rapidas)): ?>
+<select class="form-select form-select-sm mb-2" id="selRR" onchange="insertarRR()">
+<option value="">⚡ Insertar respuesta rápida...</option>
+<?php foreach ($respuestas_rapidas as $rr): ?>
+<option value="<?=e($rr['contenido'])?>"><?=e($rr['titulo'])?></option>
+<?php endforeach; ?>
+</select>
+<?php endif; ?>
+<textarea name="mensaje" id="txtMensaje" class="form-control" rows="4" required></textarea>
 </div>
 <?=renderArchivoUpload('archivos_admin', true)?>
 <button type="submit" name="responder" value="1" class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Enviar</button>
@@ -327,6 +349,14 @@ elseif (strpos($h['accion'], 'Respuesta') !== false) $cls = 'ev-resp';
 </div>
 
 <script>
+function insertarRR() {
+    var sel = document.getElementById('selRR');
+    var txt = document.getElementById('txtMensaje');
+    if (sel.value) {
+        txt.value = sel.value;
+        sel.selectedIndex = 0;
+    }
+}
 function toggleRespuesta() {
     var f = document.getElementById('formRespuesta');
     var b = document.getElementById('btnMostrarResp');

@@ -12,6 +12,14 @@ $clientes     = $db->query("SELECT COUNT(*) as t FROM usuarios WHERE rol = 'clie
 $pendientes   = $db->query("SELECT COUNT(*) as t FROM usuarios WHERE rol = 'cliente' AND estado = 'pendiente'")->fetch()['t'];
 $incidencias  = $db->query("SELECT COUNT(*) as t FROM tickets WHERE tiene_incidencia = 1 AND estado = 'terminado'")->fetch()['t'];
 
+// Carga de trabajo por admin
+$carga = $db->query("SELECT u.id, u.nombre, COUNT(t.id) as total
+    FROM usuarios u
+    LEFT JOIN tickets t ON u.id = t.asignado_a AND t.estado IN ('abierto','en_proceso')
+    WHERE u.rol = 'admin'
+    GROUP BY u.id
+    ORDER BY total DESC, u.nombre")->fetchAll();
+
 $st = $db->prepare("SELECT t.*, w.nombre as web_nombre, u.nombre as cliente_nombre FROM tickets t JOIN webs w ON t.web_id = w.id JOIN usuarios u ON t.usuario_id = u.id WHERE t.estado != 'terminado' ORDER BY t.tiene_incidencia DESC, t.fecha_actualizacion DESC LIMIT 15");
 $st->execute([]); $tickets = $st->fetchAll();
 
@@ -41,6 +49,27 @@ include 'includes/header.php';
 <a href="tickets.php?incidencias=1" class="stat-card-link"><div class="card text-white bg-danger stat-card"><div class="card-body text-center"><div class="stat-number"><?=$incidencias?></div><p class="mb-0"><i class="bi bi-exclamation-triangle"></i> Incidencias</p></div></div></a>
 </div>
 </div>
+
+<!-- Carga de trabajo -->
+<?php if (!empty($carga)): ?>
+<div class="card mb-3">
+<div class="card-header"><i class="bi bi-person-workspace"></i> Carga de Trabajo</div>
+<div class="card-body">
+<div class="d-flex flex-wrap gap-3">
+<?php foreach ($carga as $c): ?>
+<div class="d-flex align-items-center gap-2 px-3 py-2 rounded" style="background:#f8f9fa; border-left:4px solid <?=$c['total']>10?'#dc3545':($c['total']>5?'#ffc107':'#28a745')?>;">
+<i class="bi bi-person-circle" style="font-size:1.5rem; color:#6c757d;"></i>
+<div>
+<strong><?=e($c['nombre'])?></strong><br>
+<span class="badge bg-<?=$c['total']>10?'danger':($c['total']>5?'warning':'success')?>"><?=$c['total']?> ticket<?=$c['total']!=1?'s':''?></span>
+</div>
+</div>
+<?php endforeach; ?>
+</div>
+</div>
+</div>
+<?php endif; ?>
+
 <!-- Tickets recientes -->
 <div class="card">
 <div class="card-header d-flex justify-content-between"><span><i class="bi bi-clock-history"></i> Tickets Recientes</span><a href="tickets.php" class="btn btn-sm btn-outline-primary">Ver todos</a></div>
@@ -50,7 +79,8 @@ include 'includes/header.php';
 <tbody>
 <?php foreach ($tickets as $t): ?>
 <?php $tags = obtenerTagsTicket($t['id']); ?>
-<tr <?php if($t['tiene_incidencia']): ?>class="table-danger"<?php endif; ?>>
+<?php $clases = ['prio-' . $t['prioridad']]; if($t['tiene_incidencia']) $clases[] = 'table-danger'; ?>
+<tr class="<?=implode(' ', $clases)?>"><?php unset($clases); ?>
 <td><strong>#<?=$t['id']?></strong></td>
 <td><?=e($t['cliente_nombre'])?></td>
 <td><?=e($t['asunto'])?> <?php if($t['tiene_incidencia']): ?><span class="etiqueta-incidencia">Incidencia</span><?php endif; ?><?=renderTags($tags)?></td>

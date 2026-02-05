@@ -62,6 +62,10 @@ if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/service-w
 <li class="nav-item"><a class="nav-link" href="estadisticas.php"><i class="bi bi-bar-chart"></i> Estadísticas</a></li>
 <li class="nav-item"><a class="nav-link" href="configuracion.php"><i class="bi bi-gear"></i> Configuración</a></li>
 </ul>
+<form action="buscar.php" method="get" class="d-flex me-3">
+<input type="search" name="q" class="form-control form-control-sm" placeholder="Buscar tickets..." style="min-width:200px;" required>
+<button type="submit" class="btn btn-sm btn-outline-light ms-2"><i class="bi bi-search"></i></button>
+</form>
 <ul class="navbar-nav align-items-center">
 <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="dropdown"><i class="bi bi-person-circle"></i> <?=htmlspecialchars($_SESSION['usuario_nombre']??'')?> <span class="dropdown-toggle"></span></a>
 <ul class="dropdown-menu dropdown-menu-end">

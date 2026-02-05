@@ -289,6 +289,24 @@ function migraciones() {
         if (!in_array('leido_cliente', $campos2)) {
             $db->exec("ALTER TABLE respuestas ADD COLUMN leido_cliente TINYINT(1) DEFAULT 0 AFTER leido_admin");
         }
+        // usuarios: firma
+        $cols3 = $db->query("SHOW COLUMNS FROM usuarios")->fetchAll();
+        $campos3 = array_column($cols3, 'Field');
+        if (!in_array('firma', $campos3)) {
+            $db->exec("ALTER TABLE usuarios ADD COLUMN firma TEXT DEFAULT NULL AFTER telefono");
+        }
+        // respuestas_rapidas: tabla
+        $tables = $db->query("SHOW TABLES LIKE 'respuestas_rapidas'")->fetchAll();
+        if (empty($tables)) {
+            $db->exec("CREATE TABLE respuestas_rapidas (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                usuario_id INT NOT NULL,
+                titulo VARCHAR(100) NOT NULL,
+                contenido TEXT NOT NULL,
+                fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+        }
     } catch (Exception $e) { /* silencio */ }
 }
 
