@@ -28,6 +28,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_estado'])) {
                 registrarHistorial($tid, 'Tiempo registrado', formatMinutos($tiempo));
             }
         }
+        // Si se reabre un ticket terminado, limpiar la bandera de incidencia
+        if ($nuevo_estado === 'abierto' && $viejo === 'terminado') {
+            $db->prepare("UPDATE tickets SET tiene_incidencia = 0 WHERE id = ?")->execute([$tid]);
+            if ($ticket['tiene_incidencia']) {
+                registrarHistorial($tid, 'Incidencia resuelta', 'Ticket reabierto por admin');
+            }
+        }
         registrarHistorial($tid, 'Cambio de estado', "$viejo → $nuevo_estado");
         registrarLog('cambio_estado', "Ticket #$tid: $viejo → $nuevo_estado");
         if ($nuevo_estado === 'terminado') { emailTicketCerrado($ticket); }
@@ -62,6 +69,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['responder'])) {
         registrarLog($es_nota ? 'nota_interna' : 'respuesta_admin', "Ticket #$tid");
         redirigir("ver_ticket.php?id=$tid");
     }
+}
+
+// Resolver incidencia sin reabrir
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['resolver_incidencia'])) {
+    verificarTokenCSRF();
+    $db->prepare("UPDATE tickets SET tiene_incidencia = 0 WHERE id = ?")->execute([$tid]);
+    registrarHistorial($tid, 'Incidencia resuelta', 'Admin la marcó como revisada');
+    registrarLog('incidencia_resuelta', "Ticket #$tid");
+    redirigir("ver_ticket.php?id=$tid");
 }
 
 // Asignar
@@ -102,6 +118,10 @@ include 'includes/header.php';
 <?php elseif ($ticket['estado'] === 'en_proceso'): ?>
 <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalCerrar"><i class="bi bi-x-lg"></i> Cerrar Ticket</button>
 <?php else: ?>
+<?php if ($ticket['tiene_incidencia']): ?>
+<form method="post" style="display:inline"><?=csrfInput()?><input type="hidden" name="resolver_incidencia" value="1">
+<button class="btn btn-outline-warning btn-sm"><i class="bi bi-check-circle"></i> Resolver Incidencia</button></form>
+<?php endif; ?>
 <form method="post" style="display:inline"><?=csrfInput()?><input type="hidden" name="cambiar_estado" value="1"><input type="hidden" name="estado_nuevo" value="abierto">
 <button class="btn btn-success btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Reabrir</button></form>
 <?php endif; ?>
