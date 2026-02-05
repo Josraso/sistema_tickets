@@ -31,14 +31,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket['estado'] !== 'terminado' &
         $db->prepare("INSERT INTO respuestas (ticket_id, usuario_id, mensaje) VALUES (?, ?, ?)")->execute([$tid, $uid, $msg]);
         $rid = $db->lastInsertId();
         if (isset($_FILES['archivos_resp'])) {
+            $cnt = 0;
             foreach ($_FILES['archivos_resp']['tmp_name'] as $i => $tmp) {
+                if ($cnt >= 5) break;
                 if ($_FILES['archivos_resp']['error'][$i] === UPLOAD_ERR_OK && $_FILES['archivos_resp']['size'][$i] > 0) {
-                    uploadArchivo([
+                    if (uploadArchivo([
                         'tmp_name' => $_FILES['archivos_resp']['tmp_name'][$i],
                         'name'     => $_FILES['archivos_resp']['name'][$i],
                         'size'     => $_FILES['archivos_resp']['size'][$i],
                         'error'    => $_FILES['archivos_resp']['error'][$i]
-                    ], $tid, $rid);
+                    ], $tid, $rid)) $cnt++;
                 }
             }
         }

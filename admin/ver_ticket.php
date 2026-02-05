@@ -53,14 +53,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['responder'])) {
            ->execute([$tid, $_SESSION['usuario_id'], $msg, $es_nota]);
         $rid = $db->lastInsertId();
         if (isset($_FILES['archivos_admin'])) {
+            $cnt = 0;
             foreach ($_FILES['archivos_admin']['tmp_name'] as $i => $tmp) {
+                if ($cnt >= 5) break;
                 if ($_FILES['archivos_admin']['error'][$i] === UPLOAD_ERR_OK && $_FILES['archivos_admin']['size'][$i] > 0) {
-                    uploadArchivo([
+                    if (uploadArchivo([
                         'tmp_name' => $_FILES['archivos_admin']['tmp_name'][$i],
                         'name'     => $_FILES['archivos_admin']['name'][$i],
                         'size'     => $_FILES['archivos_admin']['size'][$i],
                         'error'    => $_FILES['archivos_admin']['error'][$i]
-                    ], $tid, $rid);
+                    ], $tid, $rid)) $cnt++;
                 }
             }
         }

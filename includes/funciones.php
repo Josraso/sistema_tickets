@@ -222,12 +222,14 @@ function renderArchivos($archivos) {
 }
 
 function renderArchivoUpload($name = 'archivos', $multiple = true) {
-    $maxMB = obtenerConfig('max_subida', '30');
-    $exts = implode(', ', extensionesPermitidas());
-    $mult = $multiple ? 'multiple' : '';
+    $maxMB  = obtenerConfig('max_subida', '30');
+    $exts   = implode(', ', extensionesPermitidas());
+    $mult   = $multiple ? 'multiple' : '';
+    $onchg  = $multiple ? ' onchange="if(this.files.length>5){alert(\'Máximo 5 archivos\');this.value=\'\'}"' : '';
+    $limite = $multiple ? ' | Hasta 5 archivos' : '';
     return '<div class="mb-3"><label class="form-label"><i class="bi bi-paperclip"></i> Archivos (opcionales)</label>'
-         . '<input type="file" name="' . $name . '[]" class="form-control form-control-sm" ' . $mult . ' accept=".jpg,.jpeg,.png,.gif,.zip,.rar,.pdf">'
-         . '<div class="form-text">Permitidos: ' . $exts . ' | Máximo: ' . $maxMB . ' MB por archivo</div></div>';
+         . '<input type="file" name="' . $name . '[]" class="form-control form-control-sm" ' . $mult . $onchg . ' accept=".jpg,.jpeg,.png,.gif,.zip,.rar,.pdf">'
+         . '<div class="form-text">Permitidos: ' . $exts . ' | Máximo: ' . $maxMB . ' MB por archivo' . $limite . '</div></div>';
 }
 
 // ============================================================
