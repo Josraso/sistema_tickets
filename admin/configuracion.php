@@ -31,7 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $test_para = limpiar($_POST['test_email'] ?? '');
         if (!empty($test_para)) {
             $err = '';
-            $ok = enviarEmail($test_para, 'Test SMTP — ' . obtenerConfig('empresa_nombre','Sistema de Tickets'), '<h3 style="color:#28a745;">&#10003; Test SMTP Exitoso</h3><p>Este email fue enviado desde el Sistema de Tickets para verificar la configuración SMTP.</p><p><em>Fecha: ' . date('d/m/Y H:i') . '</em></p>', $err);
+            $ok = enviarEmail($test_para, 'Test SMTP — ' . obtenerConfig('empresa_nombre','Sistema de Tickets'), '<h3 style="color:#28a745;">&#10003; Test SMTP Exitoso</h3><p>Este email fue enviado desde el Sistema de Tickets para verificar la configuración SMTP.</p><p><em>Fecha: ' . date('d/m/Y H:i') . '</em></p>', '', $err);
             if ($ok) {
                 $success = 'Email de prueba enviado correctamente a ' . $test_para;
             } else {
@@ -172,10 +172,16 @@ include 'includes/header.php';
 <div class="card"><div class="card-body">
 <h5><i class="bi bi-envelope-arrow-in"></i> Recepción de emails (IMAP Polling)</h5>
 <div class="alert alert-info small mb-3"><i class="bi bi-info-circle"></i>
-Cuando un cliente responde al email <strong>ticket+ID@<?=e(obtenerConfig('dominio_mail','tudominio.com'))?></strong>, la respuesta se añade automáticamente al ticket correspondiente.</div>
+<strong>¿Cómo funciona?</strong> Cada email que el sistema envía al cliente incluye un encabezado <code>Reply-To: ticket+ID@<?=e(obtenerConfig('dominio_mail','tudominio.com'))?></code>.
+Cuando el cliente hace clic en <em>Responder</em> en su correo, la respuesta se envía automáticamente a esa dirección (ej: <code>ticket+42@<?=e(obtenerConfig('dominio_mail','tudominio.com'))?></code>).
+El cron (<em>imap_poll</em>) lee la bandeja IMAP cada minuto, detecta el ID del ticket y añade la respuesta al ticket correspondiente.</div>
+
+<div class="alert alert-warning small mb-3"><i class="bi bi-exclamation-triangle"></i>
+<strong>Requisito en Plesk:</strong> La cuenta IMAP que configuras abajo debe ser <strong>ticket@<?=e(obtenerConfig('dominio_mail','tudominio.com'))?></strong> para que los emails <code>ticket+42@…</code> lleguen a su bandeja (<em>plus addressing</em>, activo por defecto en Plesk/Postfix).
+Si no llegan, ve a <strong>Plesk → Dominios → Correo → [cuenta ticket] → Configuración</strong> y asegúrate de que está activo. Como alternativa puedes crear un <strong>alias catch-all</strong> (<em>*@dominio → ticket@dominio</em>) en la configuración de correo de Plesk.</div>
 
 <h6><i class="bi bi-envelope"></i> Configuración IMAP</h6>
-<p class="text-muted small">Crea una cuenta de correo en Plesk (ej: <em>soporte@tudominio.com</em>) y pon aquí sus datos IMAP. El script se ejecutará cada minuto vía cron y leerá los emails de esa bandeja.</p>
+<p class="text-muted small">Pon aquí los datos IMAP de la cuenta <strong>ticket@<?=e(obtenerConfig('dominio_mail','tudominio.com'))?></strong>. El script se ejecutará cada minuto vía cron y leerá los emails de esa bandeja.</p>
 <form method="post"><?=csrfInput()?><input type="hidden" name="tab" value="pipe_imap">
 <div class="row">
 <div class="col-md-6 mb-3"><label class="form-label">Servidor IMAP (Host)</label>

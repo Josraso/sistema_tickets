@@ -32,7 +32,7 @@ function smtpCmd($fp, $cmd) {
     return smtpRead($fp);
 }
 
-function enviarEmail($para, $asunto, $cuerpo_html, &$error_msg = null) {
+function enviarEmail($para, $asunto, $cuerpo_html, $reply_to = '', &$error_msg = null) {
     $smtp = obtenerSMTP();
     if (empty($smtp['host']) || empty($smtp['user'])) {
         $error_msg = 'SMTP no configurado (host o usuario vacío)';
@@ -137,8 +137,11 @@ function enviarEmail($para, $asunto, $cuerpo_html, &$error_msg = null) {
                  . "To: " . implode(', ', $paras) . "\r\n"
                  . "Subject: =?UTF-8?B?" . base64_encode($asunto) . "?=\r\n"
                  . "MIME-Version: 1.0\r\n"
-                 . "Content-Type: text/html; charset=UTF-8\r\n"
-                 . "\r\n";
+                 . "Content-Type: text/html; charset=UTF-8\r\n";
+        if (!empty($reply_to)) {
+            $headers .= "Reply-To: <$reply_to>\r\n";
+        }
+        $headers .= "\r\n";
         fputs($fp, $headers . $cuerpo_html . "\r\n.\r\n");
         $read = smtpRead($fp);
         if (substr($read, 0, 3) !== '250') {
@@ -219,7 +222,8 @@ function emailTicketCreado($ticket) {
             'web' => getWebNombre($ticket['web_id']),
             'prioridad' => ucfirst($ticket['prioridad']),
         ]);
-        enviarEmail($cliente['email'], 'Ticket creado: #' . $ticket['id'] . ' — ' . $ticket['asunto'], $html2);
+        $reply_to = 'ticket+' . $ticket['id'] . '@' . obtenerConfig('dominio_mail', '');
+        enviarEmail($cliente['email'], 'Ticket creado: #' . $ticket['id'] . ' — ' . $ticket['asunto'], $html2, $reply_to);
     }
 }
 
@@ -234,7 +238,8 @@ function emailRespuestaAdmin($ticket, $respuesta_texto) {
             'respuesta' => $respuesta_texto,
             'url' => obtenerConfig('dominio_base', '') . '/ver_ticket.php?id=' . $ticket['id'],
         ]);
-        enviarEmail($cliente['email'], 'Respuesta en ticket #' . $ticket['id'], $html);
+        $reply_to = 'ticket+' . $ticket['id'] . '@' . obtenerConfig('dominio_mail', '');
+        enviarEmail($cliente['email'], 'Respuesta en ticket #' . $ticket['id'], $html, $reply_to);
     }
 }
 
@@ -247,7 +252,8 @@ function emailTicketCerrado($ticket) {
             'id' => $ticket['id'],
             'asunto' => $ticket['asunto'],
         ]);
-        enviarEmail($cliente['email'], 'Ticket cerrado: #' . $ticket['id'], $html);
+        $reply_to = 'ticket+' . $ticket['id'] . '@' . obtenerConfig('dominio_mail', '');
+        enviarEmail($cliente['email'], 'Ticket cerrado: #' . $ticket['id'], $html, $reply_to);
     }
 }
 
@@ -261,7 +267,8 @@ function emailTicketEnProceso($ticket) {
             'asunto' => $ticket['asunto'],
             'web' => getWebNombre($ticket['web_id']),
         ]);
-        enviarEmail($cliente['email'], 'Ticket en proceso: #' . $ticket['id'], $html);
+        $reply_to = 'ticket+' . $ticket['id'] . '@' . obtenerConfig('dominio_mail', '');
+        enviarEmail($cliente['email'], 'Ticket en proceso: #' . $ticket['id'], $html, $reply_to);
     }
 }
 
