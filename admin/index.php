@@ -5,55 +5,51 @@ if (!estaLogueado() || !esAdmin()) redirigir('../login.php');
 
 $db = getDB();
 
-$stmt = $db->query("SELECT COUNT(*) as total FROM tickets");
-$total_tickets = $stmt->fetch()['total'];
+$total = $db->query("SELECT COUNT(*) as t FROM tickets")->fetch()['t'];
+$abiertos = $db->query("SELECT COUNT(*) as t FROM tickets WHERE estado = 'abierto'")->fetch()['t'];
+$en_proceso = $db->query("SELECT COUNT(*) as t FROM tickets WHERE estado = 'en_proceso'")->fetch()['t'];
+$clientes = $db->query("SELECT COUNT(*) as t FROM usuarios WHERE rol = 'cliente'")->fetch()['t'];
+$pendientes = $db->query("SELECT COUNT(*) as t FROM usuarios WHERE rol = 'cliente' AND estado = 'pendiente'")->fetch()['t'];
+$incidencias = $db->query("SELECT COUNT(*) as t FROM tickets WHERE tiene_incidencia = 1 AND estado = 'terminado'")->fetch()['t'];
 
-$stmt = $db->query("SELECT COUNT(*) as total FROM tickets WHERE estado = 'abierto'");
-$abiertos = $stmt->fetch()['total'];
-
-$stmt = $db->query("SELECT COUNT(*) as total FROM usuarios WHERE rol = 'cliente'");
-$total_clientes = $stmt->fetch()['total'];
-
-$stmt = $db->query("SELECT COUNT(*) as total FROM usuarios WHERE estado = 'pendiente'");
-$pendientes = $stmt->fetch()['total'];
-
-$stmt = $db->query("SELECT t.*, u.nombre as cliente, w.nombre as web FROM tickets t JOIN usuarios u ON t.usuario_id = u.id JOIN webs w ON t.web_id = w.id ORDER BY t.fecha_creacion DESC LIMIT 10");
-$tickets = $stmt->fetchAll();
+$st = $db->prepare("SELECT t.*, w.nombre as web_nombre, u.nombre as cliente_nombre FROM tickets t JOIN webs w ON t.web_id = w.id JOIN usuarios u ON t.usuario_id = u.id ORDER BY t.tiene_incidencia DESC, t.fecha_actualizacion DESC LIMIT 15");
+$st->execute([]); $tickets = $st->fetchAll();
 
 include 'includes/header.php';
 ?>
-<h1>Admin Dashboard</h1>
-<div class="row">
-    <div class="col-md-3"><div class="card text-white bg-primary"><div class="card-body text-center">
-        <h2><?=$total_tickets?></h2><p>Total Tickets</p>
-    </div></div></div>
-    <div class="col-md-3"><div class="card text-white bg-info"><div class="card-body text-center">
-        <h2><?=$abiertos?></h2><p>Abiertos</p>
-    </div></div></div>
-    <div class="col-md-3"><div class="card text-white bg-success"><div class="card-body text-center">
-        <h2><?=$total_clientes?></h2><p>Clientes</p>
-    </div></div></div>
-    <div class="col-md-3"><div class="card text-white bg-warning"><div class="card-body text-center">
-        <h2><?=$pendientes?></h2><p>Pendientes</p>
-    </div></div></div>
+<div class="d-flex justify-content-between align-items-center mb-4">
+<h4><i class="bi bi-speedometer2"></i> Dashboard Admin</h4>
 </div>
-
-<div class="card mt-4">
-    <div class="card-header">Tickets Recientes</div>
-    <div class="card-body">
-        <table class="table">
-            <tr><th>ID</th><th>Cliente</th><th>Web</th><th>Asunto</th><th>Estado</th><th></th></tr>
-            <?php foreach ($tickets as $t): ?>
-            <tr>
-                <td>#<?=$t['id']?></td>
-                <td><?=e($t['cliente'])?></td>
-                <td><?=e($t['web'])?></td>
-                <td><?=e($t['asunto'])?></td>
-                <td><?=estadoBadge($t['estado'])?></td>
-                <td><a href="ver_ticket.php?id=<?=$t['id']?>" class="btn btn-sm btn-primary">Ver</a></td>
-            </tr>
-            <?php endforeach; ?>
-        </table>
-    </div>
+<!-- Stats -->
+<div class="row">
+<div class="col-lg-2 col-md-4 col-6 mb-3"><div class="card text-white bg-primary stat-card"><div class="card-body text-center"><div class="stat-number"><?=$total?></div><p class="mb-0"><i class="bi bi-ticket"></i> Total Tickets</p></div></div></div>
+<div class="col-lg-2 col-md-4 col-6 mb-3"><div class="card text-white bg-success stat-card"><div class="card-body text-center"><div class="stat-number"><?=$abiertos?></div><p class="mb-0"><i class="bi bi-circle"></i> Abiertos</p></div></div></div>
+<div class="col-lg-2 col-md-4 col-6 mb-3"><div class="card text-white bg-warning stat-card"><div class="card-body text-center"><div class="stat-number"><?=$en_proceso?></div><p class="mb-0"><i class="bi bi-arrow-clockwise"></i> En Proceso</p></div></div></div>
+<div class="col-lg-2 col-md-4 col-6 mb-3"><div class="card text-white bg-info stat-card"><div class="card-body text-center"><div class="stat-number"><?=$clientes?></div><p class="mb-0"><i class="bi bi-people"></i> Clientes</p></div></div></div>
+<div class="col-lg-2 col-md-4 col-6 mb-3"><div class="card text-white" style="background:#6f42c1" stat-card><div class="card-body text-center"><div class="stat-number"><?=$pendientes?></div><p class="mb-0"><i class="bi bi-hourglass"></i> Pendientes</p></div></div></div>
+<div class="col-lg-2 col-md-4 col-6 mb-3"><div class="card text-white bg-danger stat-card"><div class="card-body text-center"><div class="stat-number"><?=$incidencias?></div><p class="mb-0"><i class="bi bi-exclamation-triangle"></i> Incidencias</p></div></div></div>
+</div>
+<!-- Tickets recientes -->
+<div class="card">
+<div class="card-header d-flex justify-content-between"><span><i class="bi bi-clock-history"></i> Tickets Recientes</span><a href="tickets.php" class="btn btn-sm btn-outline-primary">Ver todos</a></div>
+<div class="card-body">
+<div class="table-responsive"><table class="table table-hover mb-0">
+<thead><tr><th>ID</th><th>Cliente</th><th>Asunto</th><th>Web</th><th>Estado</th><th>Prioridad</th><th>Fecha</th><th></th></tr></thead>
+<tbody>
+<?php foreach ($tickets as $t): ?>
+<?php $tags = obtenerTagsTicket($t['id']); ?>
+<tr <?php if($t['tiene_incidencia']): ?>class="table-danger"<?php endif; ?>>
+<td><strong>#<?=$t['id']?></strong></td>
+<td><?=e($t['cliente_nombre'])?></td>
+<td><?=e($t['asunto'])?> <?php if($t['tiene_incidencia']): ?><span class="etiqueta-incidencia">Incidencia</span><?php endif; ?><?=renderTags($tags)?></td>
+<td><?=e($t['web_nombre'])?></td>
+<td><?=estadoBadge($t['estado'])?></td>
+<td><?=prioridadBadge($t['prioridad'])?></td>
+<td><?=formatearFecha($t['fecha_actualizacion'])?></td>
+<td><a href="ver_ticket.php?id=<?=$t['id']?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+</tr>
+<?php endforeach; ?>
+</tbody></table></div>
+</div>
 </div>
 <?php include 'includes/footer.php'; ?>
