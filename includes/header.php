@@ -1,3 +1,4 @@
+<?php migraciones(); $badge_resp_cli = contadorRespuestasNuevasCliente($_SESSION['usuario_id']); ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -16,7 +17,7 @@
 <div class="collapse navbar-collapse" id="navCliente">
 <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="dashboard.php"><i class="bi bi-speedometer2"></i> Inicio</a></li>
-<li class="nav-item"><a class="nav-link" href="tickets.php"><i class="bi bi-ticket"></i> Mis Tickets</a></li>
+<li class="nav-item"><a class="nav-link" href="tickets.php"><i class="bi bi-ticket"></i> Mis Tickets <?php if($badge_resp_cli>0): ?><span class="badge-resp"><?=$badge_resp_cli?></span><?php endif; ?></a></li>
 <li class="nav-item"><a class="nav-link" href="webs.php"><i class="bi bi-globe"></i> Mis Webs</a></li>
 </ul>
 <ul class="navbar-nav align-items-center">

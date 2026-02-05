@@ -19,14 +19,19 @@ if (!file_exists($base . '/config.php')) exit(1);
 require_once $base . '/config.php';
 
 // ============================================================
-// CONFIGURACIÓN IMAP — Editar aquí
+// CONFIGURACIÓN IMAP — desde base de datos
 // ============================================================
-$IMAP_HOST    = 'imap.gmail.com';          // Servidor IMAP
-$IMAP_PORT    = 993;                        // Puerto (993 = SSL)
-$IMAP_USER    = 'soporte@tuempresa.com';    // Email de la bandeja
-$IMAP_PASS    = 'tu_contraseña_app';        // Contraseña / app password
-$IMAP_MAILBOX = 'INBOX';                    // Bandeja
-$IMAP_SSL     = true;                       // SSL sí/no
+$IMAP_HOST    = obtenerConfig('imap_host', '');
+$IMAP_PORT    = (int)obtenerConfig('imap_port', 993);
+$IMAP_USER    = obtenerConfig('imap_user', '');
+$IMAP_PASS    = obtenerConfig('imap_pass', '');
+$IMAP_MAILBOX = obtenerConfig('imap_mailbox', 'INBOX');
+$IMAP_SSL     = obtenerConfig('imap_security', 'ssl') === 'ssl';
+
+if (empty($IMAP_HOST) || empty($IMAP_USER)) {
+    log_imap("ERROR: IMAP no configurado. Ve a Admin → Configuración → PIPE");
+    exit(1);
+}
 // ============================================================
 
 function log_imap($msg) {
@@ -42,9 +47,7 @@ if (!extension_loaded('imap')) {
 
 // Conectar
 $ssl_flag = $IMAP_SSL ? '/ssl' : '';
-$connection_string = "{imap.$IMAP_HOST:$IMAP_PORT/ssl}$IMAP_MAILBOX";
-// Formato correcto para IMAP
-$connection_string = "{" . ($IMAP_SSL ? "imaps:" : "imap:") . "//$IMAP_HOST:$IMAP_PORT}$IMAP_MAILBOX";
+$connection_string = "{" . $IMAP_HOST . ":" . $IMAP_PORT . $ssl_flag . "}" . $IMAP_MAILBOX;
 
 $imap = @imap_open($connection_string, $IMAP_USER, $IMAP_PASS);
 if (!$imap) {
@@ -144,8 +147,8 @@ foreach ($emails as $num) {
     $clean = [];
     foreach ($lines as $line) {
         $t = trim($line);
-        if (str_starts_with($t, '>')) continue;
-        if (str_starts_with($t, '--') && strlen($t) < 10) break;
+        if (strpos($t, '>') === 0) continue;
+        if (strpos($t, '--') === 0 && strlen($t) < 10) break;
         $clean[] = $line;
     }
     $body_text = trim(implode("\n", $clean));

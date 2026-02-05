@@ -173,6 +173,7 @@ function obtenerPlantilla($tipo) {
         'ticket_cerrado' => '<h2>Ticket Cerrado</h2><p>El ticket <strong>#{{id}} — {{asunto}}</strong> ha sido marcado como <strong>Terminado</strong>.</p><p>Si tienes una incidencia, puedes reportarla desde la plataforma.</p><hr><p><em>Sistema de Tickets — {{empresa}}</em></p>',
         'incidencia' => '<h2>⚠ Nueva Incidencia Reportada</h2><p><strong>Ticket:</strong> #{{id}} — {{asunto}}</p><p><strong>Cliente:</strong> {{cliente}}</p><p><strong>Web:</strong> {{web}}</p><p>El cliente ha reportado una incidencia en un ticket cerrado. Revísalo.</p><hr><p><a href="{{url_admin}}">Ver ticket en Admin</a></p><p><em>Sistema de Tickets — {{empresa}}</em></p>',
         'nuevo_ticket_admin' => '<h2>Nuevo Ticket</h2><p><strong>Cliente:</strong> {{cliente}}</p><p><strong>Asunto:</strong> {{asunto}}</p><p><strong>Web:</strong> {{web}}</p><p><strong>Prioridad:</strong> {{prioridad}}</p><p><strong>Mensaje:</strong></p><p>{{mensaje}}</p><hr><p><a href="{{url_admin}}">Ver ticket en Admin</a></p><p><em>Sistema de Tickets — {{empresa}}</em></p>',
+        'ticket_en_proceso' => '<h2>Tu Ticket está en Proceso</h2><p>El ticket <strong>#{{id}} — {{asunto}}</strong> (<strong>{{web}}</strong>) está siendo revisado por nuestro equipo.</p><p>Si necesitas añadir información, puedes responder directamente en la plataforma.</p><hr><p><em>Sistema de Tickets — {{empresa}}</em></p>',
     ];
     return $defaults[$tipo] ?? '';
 }
@@ -247,6 +248,20 @@ function emailTicketCerrado($ticket) {
             'asunto' => $ticket['asunto'],
         ]);
         enviarEmail($cliente['email'], 'Ticket cerrado: #' . $ticket['id'], $html);
+    }
+}
+
+function emailTicketEnProceso($ticket) {
+    $db = getDB();
+    $st = $db->prepare("SELECT email FROM usuarios WHERE id=?"); $st->execute([$ticket['usuario_id']]);
+    $cliente = $st->fetch();
+    if ($cliente) {
+        $html = renderPlantilla('ticket_en_proceso', [
+            'id' => $ticket['id'],
+            'asunto' => $ticket['asunto'],
+            'web' => getWebNombre($ticket['web_id']),
+        ]);
+        enviarEmail($cliente['email'], 'Ticket en proceso: #' . $ticket['id'], $html);
     }
 }
 

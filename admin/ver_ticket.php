@@ -38,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_estado'])) {
         registrarHistorial($tid, 'Cambio de estado', "$viejo → $nuevo_estado");
         registrarLog('cambio_estado', "Ticket #$tid: $viejo → $nuevo_estado");
         if ($nuevo_estado === 'terminado') { emailTicketCerrado($ticket); }
+        if ($nuevo_estado === 'en_proceso' && $viejo !== 'en_proceso') { emailTicketEnProceso($ticket); }
         redirigir("ver_ticket.php?id=$tid");
     }
 }

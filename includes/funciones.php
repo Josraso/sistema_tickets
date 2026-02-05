@@ -284,6 +284,9 @@ function migraciones() {
         if (!in_array('leido_admin', $campos2)) {
             $db->exec("ALTER TABLE respuestas ADD COLUMN leido_admin TINYINT(1) DEFAULT 0 AFTER es_email");
         }
+        if (!in_array('leido_cliente', $campos2)) {
+            $db->exec("ALTER TABLE respuestas ADD COLUMN leido_cliente TINYINT(1) DEFAULT 0 AFTER leido_admin");
+        }
     } catch (Exception $e) { /* silencio */ }
 }
 
@@ -318,5 +321,27 @@ function marcarRespuestaLeidas($ticket_id) {
     try {
         $db = getDB();
         $db->prepare("UPDATE respuestas SET leido_admin = 1 WHERE ticket_id = ? AND es_nota_interna = 0")->execute([$ticket_id]);
+    } catch (Exception $e) {}
+}
+
+// ============================================================
+// RESPUESTAS NUEVAS (badge cliente)
+// ============================================================
+
+function contadorRespuestasNuevasCliente($usuario_id) {
+    try {
+        $db = getDB();
+        $st = $db->prepare("SELECT COUNT(DISTINCT r.ticket_id) as t FROM respuestas r JOIN tickets tk ON r.ticket_id = tk.id WHERE tk.usuario_id = ? AND r.leido_cliente = 0 AND r.es_nota_interna = 0 AND r.usuario_id != ?");
+        $st->execute([$usuario_id, $usuario_id]);
+        return $st->fetch()['t'];
+    } catch (Exception $e) {
+        return 0;
+    }
+}
+
+function marcarRespuestasLeidasCliente($ticket_id) {
+    try {
+        $db = getDB();
+        $db->prepare("UPDATE respuestas SET leido_cliente = 1 WHERE ticket_id = ? AND es_nota_interna = 0")->execute([$ticket_id]);
     } catch (Exception $e) {}
 }

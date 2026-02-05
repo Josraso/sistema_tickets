@@ -39,11 +39,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } elseif ($tab === 'plantillas') {
-        $tipos = ['ticket_creado','respuesta_admin','ticket_cerrado','incidencia','nuevo_ticket_admin'];
+        $tipos = ['ticket_creado','respuesta_admin','ticket_cerrado','incidencia','nuevo_ticket_admin','ticket_en_proceso'];
         foreach ($tipos as $t) {
             if (isset($_POST[$t])) guardarConfig('plantilla_' . $t, $_POST[$t]);
         }
         $success = 'Plantillas guardadas';
+    } elseif ($tab === 'pipe_imap') {
+        guardarConfig('imap_host', limpiar($_POST['imap_host'] ?? ''));
+        guardarConfig('imap_port', (int)($_POST['imap_port'] ?? 993));
+        guardarConfig('imap_security', limpiar($_POST['imap_security'] ?? 'ssl'));
+        guardarConfig('imap_user', limpiar($_POST['imap_user'] ?? ''));
+        guardarConfig('imap_pass', $_POST['imap_pass'] ?? '');
+        guardarConfig('imap_mailbox', limpiar($_POST['imap_mailbox'] ?? 'INBOX'));
+        $success = 'Configuración IMAP guardada';
     }
     registrarLog('config_actualizada', $success);
 }
@@ -147,7 +155,7 @@ include 'includes/header.php';
 <?=csrfInput()?><input type="hidden" name="tab" value="plantillas">
 <div class="alert alert-info small"><i class="bi bi-info-circle"></i> <strong>Variables disponibles:</strong>
 {{id}} {{asunto}} {{mensaje}} {{web}} {{prioridad}} {{cliente}} {{respuesta}} {{url}} {{url_admin}} {{empresa}}</div>
-<?php $tipos = ['ticket_creado'=>'Ticket creado (al cliente)','respuesta_admin'=>'Respuesta admin (al cliente)','ticket_cerrado'=>'Ticket cerrado (al cliente)','incidencia'=>'Incidencia reportada (al admin)','nuevo_ticket_admin'=>'Nuevo ticket (al admin)']; ?>
+<?php $tipos = ['ticket_creado'=>'Ticket creado (al cliente)','respuesta_admin'=>'Respuesta admin (al cliente)','ticket_cerrado'=>'Ticket cerrado (al cliente)','ticket_en_proceso'=>'Ticket en proceso (al cliente)','incidencia'=>'Incidencia reportada (al admin)','nuevo_ticket_admin'=>'Nuevo ticket (al admin)']; ?>
 <?php foreach ($tipos as $tipo => $label): ?>
 <div class="mb-4">
 <label class="form-label"><i class="bi bi-envelope"></i> <?=e($label)?></label>
@@ -159,30 +167,41 @@ include 'includes/header.php';
 </div></div>
 </div>
 
-<!-- PIPE info -->
+<!-- PIPE / IMAP -->
 <div class="tab-pane fade" id="panelPIPE">
 <div class="card"><div class="card-body">
-<h5><i class="bi bi-envelope-arrow-in"></i> Configuración PIPE — Recepción de emails</h5>
-<div class="alert alert-info">
-<p><strong>Sistema PIPE:</strong> Cuando un cliente responde al email <code>ticket+ID@<?=e(obtenerConfig('dominio_mail','tudominio.com'))?></code>, la respuesta se añade automáticamente al ticket.</p>
-<p><strong>Método 1 — Pipe del servidor (recomendado):</strong></p>
-<ol>
-<li>En tu servidor, edita <code>/etc/aliases</code> o el fichero de alias de tu MTA (Postfix, Exim…)</li>
-<li>Añade la línea:<br><code>default: |"/usr/bin/php /var/www/html/pipe.php"</code></li>
-<li>Haz un <code>newaliases</code> para recargar</li>
-</ol>
-<p><strong>Método 2 — IMAP Polling (cron):</strong></p>
-<ol>
-<li>Configura una cuenta IMAP/email dedicada para recibir los tickets</li>
-<li>Añade esta línea a tu cron:<br><code>* * * * * php /var/www/html/imap_poll.php</code></li>
-<li>Edita <code>imap_poll.php</code> con las credenciales IMAP</li>
-</ol>
+<h5><i class="bi bi-envelope-arrow-in"></i> Recepción de emails (IMAP Polling)</h5>
+<div class="alert alert-info small mb-3"><i class="bi bi-info-circle"></i>
+Cuando un cliente responde al email <strong>ticket+ID@<?=e(obtenerConfig('dominio_mail','tudominio.com'))?></strong>, la respuesta se añade automáticamente al ticket correspondiente.</div>
+
+<h6><i class="bi bi-envelope"></i> Configuración IMAP</h6>
+<p class="text-muted small">Crea una cuenta de correo en Plesk (ej: <em>soporte@tudominio.com</em>) y pon aquí sus datos IMAP. El script se ejecutará cada minuto vía cron y leerá los emails de esa bandeja.</p>
+<form method="post"><?=csrfInput()?><input type="hidden" name="tab" value="pipe_imap">
+<div class="row">
+<div class="col-md-6 mb-3"><label class="form-label">Servidor IMAP (Host)</label>
+<input type="text" name="imap_host" class="form-control" placeholder="mail.tudominio.com" value="<?=e(obtenerConfig('imap_host',''))?>"></div>
+<div class="col-md-6 mb-3"><label class="form-label">Cifrado</label>
+<select name="imap_security" class="form-select" id="imap_security">
+<option value="ssl"  <?=obtenerConfig('imap_security','ssl')==='ssl' ?'selected':'';?>>SSL (puerto 993)</option>
+<option value="none" <?=obtenerConfig('imap_security','ssl')==='none'?'selected':'';?>>Sin cifrado (puerto 143)</option>
+</select></div>
+<div class="col-md-6 mb-3"><label class="form-label">Puerto</label>
+<input type="number" name="imap_port" class="form-control" id="imap_port" value="<?=e(obtenerConfig('imap_port','993'))?>"></div>
+<div class="col-md-6 mb-3"><label class="form-label">Bandeja</label>
+<input type="text" name="imap_mailbox" class="form-control" value="<?=e(obtenerConfig('imap_mailbox','INBOX'))?>"></div>
+<div class="col-md-6 mb-3"><label class="form-label">Usuario (email de la cuenta IMAP)</label>
+<input type="email" name="imap_user" class="form-control" placeholder="soporte@tudominio.com" value="<?=e(obtenerConfig('imap_user',''))?>"></div>
+<div class="col-md-6 mb-3"><label class="form-label">Contraseña</label>
+<input type="password" name="imap_pass" class="form-control" value="<?=e(obtenerConfig('imap_pass',''))?>"></div>
 </div>
-<h6><i class="bi bi-file-code"></i> Archivos necesarios en el servidor:</h6>
-<ul>
-<li><code>pipe.php</code> — Procesa emails recibidos por pipe del servidor</li>
-<li><code>imap_poll.php</code> — Polling IMAP vía cron</li>
-</ul>
+<button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-floppy-disk"></i> Guardar IMAP</button>
+</form>
+
+<hr>
+<h6><i class="bi bi-clock-repeat"></i> Cron en Plesk</h6>
+<p class="text-muted small">Ve a <strong>Plesk → Dominios → [tu dominio] → Programador de tareas</strong> y añade una tarea nueva con frecuencia <strong>cada 1 minuto</strong>:</p>
+<div class="bg-light border rounded p-2 mb-2"><code class="small">php /var/www/vhost/[tudominio]/docroot/imap_poll.php</code></div>
+<div class="alert alert-warning small"><i class="bi bi-exclamation-triangle"></i> La ruta <code>/var/www/vhost/[tudominio]/docroot/</code> es un ejemplo. Comprueba la ruta real de tu dominio en Plesk → Info del dominio.</div>
 </div></div>
 </div>
 </div><!-- /tab-content -->
@@ -199,12 +218,20 @@ if (savedTab) {
     var tabEl = document.querySelector('a[href="' + savedTab + '"]');
     if (tabEl) { var tab = new bootstrap.Tab(tabEl); tab.show(); }
 }
-// Auto-cambiar puerto al seleccionar tipo de cifrado
+// Auto-cambiar puerto al seleccionar tipo de cifrado SMTP
 var selSec = document.getElementById('smtp_security');
 if (selSec) {
     selSec.addEventListener('change', function() {
         var puertos = {none:'25', starttls:'587', ssl:'465'};
         document.getElementById('smtp_port').value = puertos[this.value] || '587';
+    });
+}
+// Auto-cambiar puerto al seleccionar cifrado IMAP
+var selImapSec = document.getElementById('imap_security');
+if (selImapSec) {
+    selImapSec.addEventListener('change', function() {
+        var puertos = {ssl:'993', none:'143'};
+        document.getElementById('imap_port').value = puertos[this.value] || '993';
     });
 }
 </script>

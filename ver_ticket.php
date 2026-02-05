@@ -62,6 +62,8 @@ $archivos  = obtenerArchivos($tid);
 $st = $db->prepare("SELECT h.*, u.nombre as usu_nombre FROM historial_tickets h LEFT JOIN usuarios u ON h.usuario_id = u.id WHERE h.ticket_id = ? ORDER BY h.fecha DESC");
 $st->execute([$tid]); $historial = $st->fetchAll();
 
+marcarRespuestasLeidasCliente($tid);
+
 include 'includes/header.php';
 ?>
 <div class="d-flex justify-content-between align-items-center mb-3">
