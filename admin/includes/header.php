@@ -30,6 +30,7 @@
 <li class="nav-item"><a class="nav-link" href="#" data-bs-toggle="dropdown"><i class="bi bi-person-circle"></i> <?=htmlspecialchars($_SESSION['usuario_nombre']??'')?> <span class="dropdown-toggle"></span></a>
 <ul class="dropdown-menu dropdown-menu-end">
 <li><span class="dropdown-header">Admin</span></li>
+<li><a class="dropdown-item" href="perfil.php"><i class="bi bi-person-circle"></i> Mi Perfil</a></li>
 <li><a class="dropdown-item" href="../logout.php"><i class="bi bi-box-arrow-right"></i> Cerrar Sesión</a></li>
 </ul></li>
 </ul>

@@ -87,9 +87,23 @@ $admins = $db->query("SELECT * FROM usuarios WHERE rol = 'admin'")->fetchAll();
 
 include 'includes/header.php';
 ?>
-<div class="d-flex justify-content-between align-items-center mb-3">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
 <h4><i class="bi bi-ticket"></i> Ticket #<?=$ticket['id']?></h4>
+<div class="d-flex gap-2">
+<?php if ($ticket['estado'] === 'abierto'): ?>
+<form method="post" style="display:inline"><?=csrfInput()?><input type="hidden" name="cambiar_estado" value="1"><input type="hidden" name="estado_nuevo" value="en_proceso">
+<button class="btn btn-warning btn-sm"><i class="bi bi-arrow-clockwise"></i> En Proceso</button></form>
+<form method="post" style="display:inline"><?=csrfInput()?><input type="hidden" name="cambiar_estado" value="1"><input type="hidden" name="estado_nuevo" value="terminado">
+<button class="btn btn-danger btn-sm"><i class="bi bi-x-lg"></i> Cerrar Ticket</button></form>
+<?php elseif ($ticket['estado'] === 'en_proceso'): ?>
+<form method="post" style="display:inline"><?=csrfInput()?><input type="hidden" name="cambiar_estado" value="1"><input type="hidden" name="estado_nuevo" value="terminado">
+<button class="btn btn-danger btn-sm"><i class="bi bi-x-lg"></i> Cerrar Ticket</button></form>
+<?php else: ?>
+<form method="post" style="display:inline"><?=csrfInput()?><input type="hidden" name="cambiar_estado" value="1"><input type="hidden" name="estado_nuevo" value="abierto">
+<button class="btn btn-success btn-sm"><i class="bi bi-arrow-counterclockwise"></i> Reabrir</button></form>
+<?php endif; ?>
 <a href="tickets.php" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
+</div>
 </div>
 
 <div class="row">
@@ -162,9 +176,9 @@ include 'includes/header.php';
 <?php foreach ($historial as $h): ?>
 <?php
 $cls = 'ev-estado';
-if (str_contains($h['accion'], 'Incidencia')) $cls = 'ev-inc';
-elseif (str_contains($h['accion'], 'Nota')) $cls = 'ev-nota';
-elseif (str_contains($h['accion'], 'Respuesta')) $cls = 'ev-resp';
+if (strpos($h['accion'], 'Incidencia') !== false) $cls = 'ev-inc';
+elseif (strpos($h['accion'], 'Nota') !== false) $cls = 'ev-nota';
+elseif (strpos($h['accion'], 'Respuesta') !== false) $cls = 'ev-resp';
 ?>
 <div class="historial-item <?=$cls?>">
 <small class="text-muted"><?=formatearFecha($h['fecha'])?></small>

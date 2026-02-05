@@ -71,6 +71,7 @@ body { min-height: 100vh; display: flex; align-items: center; justify-content: c
 <label class="form-label"><i class="bi bi-lock"></i> Contraseña</label>
 <input type="password" name="password" class="form-control" required autocomplete="password" placeholder="••••••••">
 </div>
+<div class="text-end mb-2"><a href="recuperar.php" class="small text-muted"><i class="bi bi-key"></i> ¿Olvidaste tu contraseña?</a></div>
 <div class="mb-4"><?=generarCaptcha()?></div>
 <button type="submit" class="btn btn-primary w-100 py-2"><i class="bi bi-box-arrow-in-right"></i> Inicia Sesión</button>
 </form>

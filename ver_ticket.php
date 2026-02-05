@@ -136,9 +136,9 @@ include 'includes/header.php';
 <?php foreach ($historial as $h): ?>
 <?php
 $cls = 'ev-estado';
-if (str_contains($h['accion'], 'Incidencia')) $cls = 'ev-inc';
-elseif (str_contains($h['accion'], 'Nota')) $cls = 'ev-nota';
-elseif (str_contains($h['accion'], 'Respuesta')) $cls = 'ev-resp';
+if (strpos($h['accion'], 'Incidencia') !== false) $cls = 'ev-inc';
+elseif (strpos($h['accion'], 'Nota') !== false) $cls = 'ev-nota';
+elseif (strpos($h['accion'], 'Respuesta') !== false) $cls = 'ev-resp';
 ?>
 <div class="historial-item <?=$cls?>">
 <small class="text-muted"><?=formatearFecha($h['fecha'])?></small>

@@ -20,10 +20,10 @@ include 'includes/header.php';
 <a href="nuevo_ticket.php" class="btn btn-primary btn-sm"><i class="bi bi-plus-lg"></i> Nuevo Ticket</a>
 </div>
 <div class="row">
-<div class="col-md-3 col-6 mb-3"><div class="card text-white bg-primary stat-card"><div class="card-body text-center"><div class="stat-number"><?=$total?></div><p class="mb-0"><i class="bi bi-ticket"></i> Total Tickets</p></div></div></div>
-<div class="col-md-3 col-6 mb-3"><div class="card text-white bg-info stat-card"><div class="card-body text-center"><div class="stat-number"><?=$abiertos?></div><p class="mb-0"><i class="bi bi-circle"></i> Abiertos</p></div></div></div>
-<div class="col-md-3 col-6 mb-3"><div class="card text-white bg-warning stat-card"><div class="card-body text-center"><div class="stat-number"><?=$en_proceso?></div><p class="mb-0"><i class="bi bi-arrow-clockwise"></i> En Proceso</p></div></div></div>
-<div class="col-md-3 col-6 mb-3"><div class="card text-white bg-success stat-card"><div class="card-body text-center"><div class="stat-number"><?=$webs?></div><p class="mb-0"><i class="bi bi-globe"></i> Webs</p></div></div></div>
+<div class="col-md-3 col-6 mb-3"><a href="tickets.php" class="stat-card-link"><div class="card text-white bg-primary stat-card"><div class="card-body text-center"><div class="stat-number"><?=$total?></div><p class="mb-0"><i class="bi bi-ticket"></i> Total Tickets</p></div></div></a></div>
+<div class="col-md-3 col-6 mb-3"><a href="tickets.php?estado=abierto" class="stat-card-link"><div class="card text-white bg-info stat-card"><div class="card-body text-center"><div class="stat-number"><?=$abiertos?></div><p class="mb-0"><i class="bi bi-circle"></i> Abiertos</p></div></div></a></div>
+<div class="col-md-3 col-6 mb-3"><a href="tickets.php?estado=en_proceso" class="stat-card-link"><div class="card text-white bg-warning stat-card"><div class="card-body text-center"><div class="stat-number"><?=$en_proceso?></div><p class="mb-0"><i class="bi bi-arrow-clockwise"></i> En Proceso</p></div></div></a></div>
+<div class="col-md-3 col-6 mb-3"><a href="webs.php" class="stat-card-link"><div class="card text-white bg-success stat-card"><div class="card-body text-center"><div class="stat-number"><?=$webs?></div><p class="mb-0"><i class="bi bi-globe"></i> Webs</p></div></div></a></div>
 </div>
 <div class="card">
 <div class="card-header"><i class="bi bi-clock-history"></i> Tickets Recientes</div>

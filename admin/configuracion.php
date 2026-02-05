@@ -24,6 +24,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         guardarConfig('smtp_pass', $_POST['smtp_pass'] ?? '');
         guardarConfig('smtp_from', limpiar($_POST['smtp_from'] ?? ''));
         $success = 'Configuración SMTP guardada';
+    } elseif ($tab === 'test_smtp') {
+        $test_para = limpiar($_POST['test_email'] ?? '');
+        if (!empty($test_para)) {
+            $ok = enviarEmail($test_para, 'Test SMTP — ' . obtenerConfig('empresa_nombre','Sistema de Tickets'), '<h3 style="color:#28a745;">&#10003; Test SMTP Exitoso</h3><p>Este email fue enviado desde el Sistema de Tickets para verificar la configuración SMTP.</p><p><em>Fecha: ' . date('d/m/Y H:i') . '</em></p>');
+            $success = $ok ? 'Email de prueba enviado correctamente a ' . $test_para : 'Error al enviar. Revisa que el SMTP esté configurado y guarda primero.';
+        }
     } elseif ($tab === 'plantillas') {
         $tipos = ['ticket_creado','respuesta_admin','ticket_cerrado','incidencia','nuevo_ticket_admin'];
         foreach ($tipos as $t) {
@@ -96,6 +102,14 @@ include 'includes/header.php';
 <input type="email" name="smtp_from" class="form-control" placeholder="soporte@empresa.com" value="<?=e(obtenerConfig('smtp_from',''))?>"></div>
 </div>
 <button type="submit" class="btn btn-primary"><i class="bi bi-floppy-disk"></i> Guardar</button>
+</form>
+<hr class="mt-4">
+<h6><i class="bi bi-send"></i> Probar configuración SMTP</h6>
+<p class="text-muted small">Guarda la configuración primero, luego envía un email de prueba.</p>
+<form method="post" class="d-flex gap-2">
+<?=csrfInput()?><input type="hidden" name="tab" value="test_smtp">
+<input type="email" name="test_email" class="form-control form-control-sm" placeholder="email@prueba.com" required>
+<button type="submit" class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-send"></i> Enviar Prueba</button>
 </form>
 </div></div>
 </div>
