@@ -100,7 +100,7 @@ include 'includes/header.php';
 <div class="card-body">
 <?php foreach ($respuestas as $r): ?>
 <?php $ar = obtenerArchivos($tid, $r['id']); ?>
-<div class="respuesta-admin">
+<div class="respuesta-<?=$r['usuario_id'] == $ticket['usuario_id'] ? 'cliente' : 'admin'?>">
 <div class="d-flex justify-content-between"><strong><?=e($r['usu_nombre'])?></strong><small class="text-muted"><?=formatearFecha($r['fecha_creacion'])?></small></div>
 <p class="mt-1 mb-1"><?=nl2br(e($r['mensaje']))?></p>
 <?=renderArchivos($ar)?>

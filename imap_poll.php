@@ -149,6 +149,9 @@ foreach ($emails as $num) {
         $t = trim($line);
         if (strpos($t, '>') === 0) continue;
         if (strpos($t, '--') === 0 && strlen($t) < 10) break;
+        // Encabezado de cita Gmail (español / inglés) y Outlook
+        if (preg_match('/^(El\s+\w+.*escribi|On\s+\w+.*wrote\s*:|-{3,}\s*(Original Message|Mensaje original))/i', $t)) break;
+        if (preg_match('/(escribi[oó]|wrote)\s*:\s*$/i', $t)) break;
         $clean[] = $line;
     }
     $body_text = trim(implode("\n", $clean));

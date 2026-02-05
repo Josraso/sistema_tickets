@@ -167,7 +167,7 @@ include 'includes/header.php';
 <div class="card-body">
 <?php foreach ($respuestas as $r): ?>
 <?php $ar = obtenerArchivos($tid, $r['id']); ?>
-<div class="respuesta-<?=$r['es_nota_interna'] ? 'nota' : 'admin'?>">
+<div class="respuesta-<?=$r['es_nota_interna'] ? 'nota' : ($r['usuario_id'] == $ticket['usuario_id'] ? 'cliente' : 'admin')?>">
 <div class="d-flex justify-content-between">
 <strong><?=e($r['usu_nombre'])?> <?php if($r['es_nota_interna']): ?><span class="nota-label"><i class="bi bi-lock"></i> Nota interna</span><?php endif; ?></strong>
 <small class="text-muted"><?=formatearFecha($r['fecha_creacion'])?></small>
