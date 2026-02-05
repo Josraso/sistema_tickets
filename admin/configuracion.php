@@ -5,6 +5,7 @@ if (!estaLogueado() || !esAdmin()) redirigir('../login.php');
 
 $db = getDB();
 $success = '';
+$error   = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verificarTokenCSRF();
@@ -21,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($tab === 'smtp') {
         guardarConfig('smtp_host', limpiar($_POST['smtp_host'] ?? ''));
         guardarConfig('smtp_port', (int)($_POST['smtp_port'] ?? 587));
+        guardarConfig('smtp_security', limpiar($_POST['smtp_security'] ?? 'starttls'));
         guardarConfig('smtp_user', limpiar($_POST['smtp_user'] ?? ''));
         guardarConfig('smtp_pass', $_POST['smtp_pass'] ?? '');
         guardarConfig('smtp_from', limpiar($_POST['smtp_from'] ?? ''));
@@ -28,8 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($tab === 'test_smtp') {
         $test_para = limpiar($_POST['test_email'] ?? '');
         if (!empty($test_para)) {
-            $ok = enviarEmail($test_para, 'Test SMTP — ' . obtenerConfig('empresa_nombre','Sistema de Tickets'), '<h3 style="color:#28a745;">&#10003; Test SMTP Exitoso</h3><p>Este email fue enviado desde el Sistema de Tickets para verificar la configuración SMTP.</p><p><em>Fecha: ' . date('d/m/Y H:i') . '</em></p>');
-            $success = $ok ? 'Email de prueba enviado correctamente a ' . $test_para : 'Error al enviar. Revisa que el SMTP esté configurado y guarda primero.';
+            $err = '';
+            $ok = enviarEmail($test_para, 'Test SMTP — ' . obtenerConfig('empresa_nombre','Sistema de Tickets'), '<h3 style="color:#28a745;">&#10003; Test SMTP Exitoso</h3><p>Este email fue enviado desde el Sistema de Tickets para verificar la configuración SMTP.</p><p><em>Fecha: ' . date('d/m/Y H:i') . '</em></p>', $err);
+            if ($ok) {
+                $success = 'Email de prueba enviado correctamente a ' . $test_para;
+            } else {
+                $error = 'Error al enviar email: ' . ($err ?: 'desconocido');
+            }
         }
     } elseif ($tab === 'plantillas') {
         $tipos = ['ticket_creado','respuesta_admin','ticket_cerrado','incidencia','nuevo_ticket_admin'];
@@ -46,6 +53,7 @@ include 'includes/header.php';
 <div class="d-flex justify-content-between align-items-center mb-3">
 <h4><i class="bi bi-gear"></i> Configuración</h4>
 <?php if ($success): ?><div class="alert alert-success alert-dismissible mb-0 py-1"><i class="bi bi-check-circle"></i> <?=e($success)?></div><?php endif; ?>
+<?php if ($error): ?><div class="alert alert-danger alert-dismissible mb-0 py-1"><i class="bi bi-exclamation-circle"></i> <?=e($error)?></div><?php endif; ?>
 </div>
 
 <!-- Tabs -->
@@ -102,8 +110,15 @@ include 'includes/header.php';
 <div class="row">
 <div class="col-md-6 mb-3"><label class="form-label">Servidor SMTP (Host)</label>
 <input type="text" name="smtp_host" class="form-control" placeholder="smtp.gmail.com" value="<?=e(obtenerConfig('smtp_host',''))?>"></div>
+<div class="col-md-6 mb-3"><label class="form-label">Cifrado / Seguridad</label>
+<select name="smtp_security" class="form-select" id="smtp_security">
+<option value="none"     <?=obtenerConfig('smtp_security','starttls')==='none'    ?'selected':'';?>>Sin cifrado (puerto 25)</option>
+<option value="starttls" <?=obtenerConfig('smtp_security','starttls')==='starttls'?'selected':'';?>>STARTTLS (puerto 587)</option>
+<option value="ssl"      <?=obtenerConfig('smtp_security','starttls')==='ssl'     ?'selected':'';?>>SSL/TLS (puerto 465)</option>
+</select>
+<div class="form-text">STARTTLS es la más común. SSL/TLS para proveedores que requieren conexión cifrada desde el inicio.</div></div>
 <div class="col-md-6 mb-3"><label class="form-label">Puerto</label>
-<input type="number" name="smtp_port" class="form-control" value="<?=e(obtenerConfig('smtp_port','587'))?>"></div>
+<input type="number" name="smtp_port" class="form-control" id="smtp_port" value="<?=e(obtenerConfig('smtp_port','587'))?>"></div>
 <div class="col-md-6 mb-3"><label class="form-label">Usuario SMTP</label>
 <input type="email" name="smtp_user" class="form-control" placeholder="tu@gmail.com" value="<?=e(obtenerConfig('smtp_user',''))?>"></div>
 <div class="col-md-6 mb-3"><label class="form-label">Contraseña SMTP</label>
@@ -183,6 +198,14 @@ var savedTab = sessionStorage.getItem('configTab');
 if (savedTab) {
     var tabEl = document.querySelector('a[href="' + savedTab + '"]');
     if (tabEl) { var tab = new bootstrap.Tab(tabEl); tab.show(); }
+}
+// Auto-cambiar puerto al seleccionar tipo de cifrado
+var selSec = document.getElementById('smtp_security');
+if (selSec) {
+    selSec.addEventListener('change', function() {
+        var puertos = {none:'25', starttls:'587', ssl:'465'};
+        document.getElementById('smtp_port').value = puertos[this.value] || '587';
+    });
 }
 </script>
 <?php include 'includes/footer.php'; ?>

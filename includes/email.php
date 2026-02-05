@@ -5,72 +5,133 @@
 
 function obtenerSMTP() {
     return [
-        'host'    => obtenerConfig('smtp_host', ''),
-        'port'    => (int)obtenerConfig('smtp_port', '587'),
-        'user'    => obtenerConfig('smtp_user', ''),
-        'pass'    => obtenerConfig('smtp_pass', ''),
-        'from'    => obtenerConfig('smtp_from', ''),
-        'from_name' => obtenerConfig('empresa_nombre', 'Sistema de Tickets'),
+        'host'     => obtenerConfig('smtp_host', ''),
+        'port'     => (int)obtenerConfig('smtp_port', '587'),
+        'security' => obtenerConfig('smtp_security', 'starttls'),
+        'user'     => obtenerConfig('smtp_user', ''),
+        'pass'     => obtenerConfig('smtp_pass', ''),
+        'from'     => obtenerConfig('smtp_from', ''),
+        'from_name'=> obtenerConfig('empresa_nombre', 'Sistema de Tickets'),
     ];
 }
 
-function enviarEmail($para, $asunto, $cuerpo_html) {
+// Lee una respuesta SMTP completa (maneja multilinea 250-xxx / 250 xxx)
+function smtpRead($fp) {
+    $last = '';
+    do {
+        $line = fgets($fp, 4096);
+        if ($line === false) break;
+        $last = $line;
+    } while (strlen($line) >= 4 && $line[3] === '-');
+    return trim($last);
+}
+
+// Envía un comando SMTP y lee la respuesta
+function smtpCmd($fp, $cmd) {
+    fputs($fp, $cmd . "\r\n");
+    return smtpRead($fp);
+}
+
+function enviarEmail($para, $asunto, $cuerpo_html, &$error_msg = null) {
     $smtp = obtenerSMTP();
     if (empty($smtp['host']) || empty($smtp['user'])) {
-        registrarLog('email_error', "SMTP no configurado. Para: $para, Asunto: $asunto");
+        $error_msg = 'SMTP no configurado (host o usuario vacío)';
+        registrarLog('email_error', "SMTP no configurado. Para: $para");
         return false;
     }
+
+    $error_msg = '';
     try {
         $context = stream_context_create([
             'ssl' => ['verify_peer' => false, 'verify_peer_name' => false]
         ]);
-        $port = $smtp['port'];
-        if ($port == 465) {
-            $fp = stream_socket_client("ssl://{$smtp['host']}:{$port}", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
-        } else {
-            $fp = stream_socket_client("{$smtp['host']}:{$port}", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
-        }
+
+        $port     = $smtp['port'];
+        $security = $smtp['security'];
+
+        // Conectar: SSL desde el inicio si es 'ssl', en otro caso sin cifrado aún
+        $prefix = ($security === 'ssl') ? 'ssl://' : '';
+        $fp = stream_socket_client($prefix . $smtp['host'] . ':' . $port, $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
         if (!$fp) {
-            registrarLog('email_error', "No se pudo conectar al SMTP: $errstr ($errno)");
+            $error_msg = "Conexión fallida al servidor {$smtp['host']}:{$port} — $errstr ($errno)";
+            registrarLog('email_error', $error_msg);
             return false;
         }
-        $read = fgets($fp);
-        if (substr($read,0,3) !== '220') { fclose($fp); return false; }
+        stream_set_timeout($fp, 10);
 
-        // EHLO
-        fputs($fp, "EHLO " . ($smtp['host'] ?? 'localhost') . "\r\n"); $read = fgets($fp);
-        // Leer lineas multi-linea EHLO
-        while (strpos($read, ' ') === 3) { $read = fgets($fp); if (substr($read,0,3) !== '250') break; }
-
-        // STARTTLS si no es 465
-        if ($port !== 465) {
-            fputs($fp, "STARTTLS\r\n"); $read = fgets($fp);
-            $fp2 = stream_socket_client("ssl://{$smtp['host']}:{$port}", $errno, $errstr, 30, STREAM_CLIENT_CONNECT, $context);
-            if ($fp2) {
-                // Re-intentar con ssl:// directo si STARTTLS falla
-            }
-            // Intentar con ssl stream wrapper
-            stream_socket_enable_crypto($fp, true, STREAM_SSL_SERVER_ALL);
-            fputs($fp, "EHLO " . ($smtp['host'] ?? 'localhost') . "\r\n"); $read = fgets($fp);
-            while (strpos($read, ' ') === 3) { $read = fgets($fp); }
+        // Greeting 220
+        $read = smtpRead($fp);
+        if (substr($read, 0, 3) !== '220') {
+            $error_msg = "Greeting SMTP inesperado: $read";
+            fclose($fp); return false;
         }
 
-        // AUTH
-        fputs($fp, "AUTH LOGIN\r\n"); $read = fgets($fp);
-        fputs($fp, base64_encode($smtp['user']) . "\r\n"); $read = fgets($fp);
-        fputs($fp, base64_encode($smtp['pass']) . "\r\n"); $read = fgets($fp);
-        if (substr($read,0,3) !== '235') {
-            registrarLog('email_error', "AUTH fallo: $read");
+        // EHLO
+        $read = smtpCmd($fp, 'EHLO ' . ($_SERVER['HTTP_HOST'] ?? 'localhost'));
+        if (substr($read, 0, 3) !== '250') {
+            $error_msg = "EHLO rechazado: $read";
+            fclose($fp); return false;
+        }
+
+        // STARTTLS si la seguridad es starttls
+        if ($security === 'starttls') {
+            $read = smtpCmd($fp, 'STARTTLS');
+            if (substr($read, 0, 3) !== '220') {
+                $error_msg = "STARTTLS no aceptado por el servidor: $read";
+                fclose($fp); return false;
+            }
+            if (!stream_socket_enable_crypto($fp, true, STREAM_SSL_CLIENT_ALL)) {
+                $error_msg = "Fallo al activar cifrado TLS en la conexión";
+                fclose($fp); return false;
+            }
+            // Re-EHLO obligatorio tras STARTTLS (RFC 3207)
+            $read = smtpCmd($fp, 'EHLO ' . ($_SERVER['HTTP_HOST'] ?? 'localhost'));
+            if (substr($read, 0, 3) !== '250') {
+                $error_msg = "EHLO tras STARTTLS rechazado: $read";
+                fclose($fp); return false;
+            }
+        }
+
+        // AUTH LOGIN
+        $read = smtpCmd($fp, 'AUTH LOGIN');
+        if (substr($read, 0, 3) !== '334') {
+            $error_msg = "AUTH LOGIN no aceptado: $read";
+            fclose($fp); return false;
+        }
+        $read = smtpCmd($fp, base64_encode($smtp['user']));
+        if (substr($read, 0, 3) !== '334') {
+            $error_msg = "Usuario SMTP rechazado: $read";
+            fclose($fp); return false;
+        }
+        $read = smtpCmd($fp, base64_encode($smtp['pass']));
+        if (substr($read, 0, 3) !== '235') {
+            $error_msg = "Autenticación SMTP fallida: $read";
             fclose($fp); return false;
         }
 
         // MAIL FROM
-        fputs($fp, "MAIL FROM:<{$smtp['from']}>\r\n"); $read = fgets($fp);
+        $read = smtpCmd($fp, "MAIL FROM:<{$smtp['from']}>");
+        if (substr($read, 0, 3) !== '250') {
+            $error_msg = "MAIL FROM rechazado: $read";
+            fclose($fp); return false;
+        }
+
         // RCPT TO
         $paras = is_array($para) ? $para : [$para];
-        foreach ($paras as $p) { fputs($fp, "RCPT TO:<$p>\r\n"); $read = fgets($fp); }
+        foreach ($paras as $p) {
+            $read = smtpCmd($fp, "RCPT TO:<$p>");
+            if (substr($read, 0, 3) !== '250') {
+                $error_msg = "RCPT TO rechazado ($p): $read";
+                fclose($fp); return false;
+            }
+        }
+
         // DATA
-        fputs($fp, "DATA\r\n"); $read = fgets($fp);
+        $read = smtpCmd($fp, 'DATA');
+        if (substr($read, 0, 3) !== '354') {
+            $error_msg = "DATA no aceptado: $read";
+            fclose($fp); return false;
+        }
 
         $headers = "From: {$smtp['from_name']} <{$smtp['from']}>\r\n"
                  . "To: " . implode(', ', $paras) . "\r\n"
@@ -79,13 +140,19 @@ function enviarEmail($para, $asunto, $cuerpo_html) {
                  . "Content-Type: text/html; charset=UTF-8\r\n"
                  . "\r\n";
         fputs($fp, $headers . $cuerpo_html . "\r\n.\r\n");
-        $read = fgets($fp);
-        fputs($fp, "QUIT\r\n");
+        $read = smtpRead($fp);
+        if (substr($read, 0, 3) !== '250') {
+            $error_msg = "Mensaje no aceptado por el servidor: $read";
+            fclose($fp); return false;
+        }
+
+        smtpCmd($fp, 'QUIT');
         fclose($fp);
-        registrarLog('email_enviado', "Para: " . implode(', ',$paras) . " | Asunto: $asunto");
+        registrarLog('email_enviado', "Para: " . implode(', ', $paras) . " | Asunto: $asunto");
         return true;
     } catch (Exception $e) {
-        registrarLog('email_error', "Excepción: " . $e->getMessage() . " | Para: $para");
+        $error_msg = "Excepción: " . $e->getMessage();
+        registrarLog('email_error', $error_msg . " | Para: $para");
         return false;
     }
 }
