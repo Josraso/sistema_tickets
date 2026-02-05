@@ -12,7 +12,7 @@ $clientes     = $db->query("SELECT COUNT(*) as t FROM usuarios WHERE rol = 'clie
 $pendientes   = $db->query("SELECT COUNT(*) as t FROM usuarios WHERE rol = 'cliente' AND estado = 'pendiente'")->fetch()['t'];
 $incidencias  = $db->query("SELECT COUNT(*) as t FROM tickets WHERE tiene_incidencia = 1 AND estado = 'terminado'")->fetch()['t'];
 
-$st = $db->prepare("SELECT t.*, w.nombre as web_nombre, u.nombre as cliente_nombre FROM tickets t JOIN webs w ON t.web_id = w.id JOIN usuarios u ON t.usuario_id = u.id ORDER BY t.tiene_incidencia DESC, t.fecha_actualizacion DESC LIMIT 15");
+$st = $db->prepare("SELECT t.*, w.nombre as web_nombre, u.nombre as cliente_nombre FROM tickets t JOIN webs w ON t.web_id = w.id JOIN usuarios u ON t.usuario_id = u.id WHERE t.estado != 'terminado' ORDER BY t.tiene_incidencia DESC, t.fecha_actualizacion DESC LIMIT 15");
 $st->execute([]); $tickets = $st->fetchAll();
 
 include 'includes/header.php';

@@ -22,6 +22,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($accion === 'desbloquear') {
         $db->prepare("UPDATE usuarios SET estado = 'activo' WHERE id = ? AND rol = 'cliente'")->execute([$cid]);
         $success = 'Cliente desbloqueado';
+    } elseif ($accion === 'editar') {
+        $nombre   = limpiar($_POST['edit_nombre'] ?? '');
+        $email    = limpiar($_POST['edit_email'] ?? '');
+        $telefono = limpiar($_POST['edit_telefono'] ?? '');
+        $password = $_POST['edit_password'] ?? '';
+        if (empty($nombre) || empty($email)) {
+            $error = 'Nombre y email son obligatorios';
+        } else {
+            // Verificar que email no esté en uso por otro usuario
+            $st = $db->prepare("SELECT id FROM usuarios WHERE email = ? AND id != ?"); $st->execute([$email, $cid]);
+            if ($st->fetch()) {
+                $error = 'Ya existe otro usuario con ese email';
+            } else {
+                if (!empty($password)) {
+                    if (strlen($password) < 6) { $error = 'La contraseña debe tener al menos 6 caracteres'; }
+                    else {
+                        $hash = password_hash($password, PASSWORD_DEFAULT);
+                        $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, password = ?, telefono = ? WHERE id = ?")->execute([$nombre, $email, $hash, $telefono, $cid]);
+                        $success = 'Cliente actualizado';
+                    }
+                } else {
+                    $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, telefono = ? WHERE id = ?")->execute([$nombre, $email, $telefono, $cid]);
+                    $success = 'Cliente actualizado';
+                }
+            }
+        }
+    } elseif ($accion === 'eliminar') {
+        // Verificar que no tenga tickets
+        $st = $db->prepare("SELECT COUNT(*) as t FROM tickets WHERE usuario_id = ?"); $st->execute([$cid]);
+        if ($st->fetch()['t'] > 0) {
+            $error = 'No se puede eliminar: el cliente tiene tickets asociados';
+        } else {
+            $db->prepare("DELETE FROM usuarios WHERE id = ? AND rol = 'cliente'")->execute([$cid]);
+            $success = 'Cliente eliminado';
+            registrarLog('eliminar_cliente', "Cliente #$cid eliminado");
+        }
     } elseif ($accion === 'crear_usuario') {
         $nombre   = limpiar($_POST['nuevo_nombre'] ?? '');
         $email    = limpiar($_POST['nuevo_email'] ?? '');
@@ -104,6 +140,9 @@ else echo '<span class="badge bg-danger">Bloqueado</span>';
 <form method="post" style="display:inline"><?=csrfInput()?><input type="hidden" name="accion" value="desbloquear"><input type="hidden" name="cliente_id" value="<?=$c['id']?>">
 <button class="btn btn-outline-success btn-sm"><i class="bi bi-unlock"></i> Desbloquear</button></form>
 <?php endif; ?>
+<button class="btn btn-outline-primary btn-sm" onclick="editarCliente(<?=$c['id']?>, '<?=addslashes($c['nombre'])?>', '<?=addslashes($c['email'])?>', '<?=addslashes($c['telefono'])?>')"><i class="bi bi-pencil"></i></button>
+<form method="post" style="display:inline" onsubmit="return confirm('¿Eliminar este cliente? Esta acción no se puede deshacer.')"><?=csrfInput()?><input type="hidden" name="accion" value="eliminar"><input type="hidden" name="cliente_id" value="<?=$c['id']?>">
+<button class="btn btn-outline-danger btn-sm"><i class="bi bi-trash"></i></button></form>
 </td>
 </tr>
 <?php endforeach; ?>
@@ -153,4 +192,52 @@ else echo '<span class="badge bg-danger">Bloqueado</span>';
 </form>
 </div></div>
 </div>
+
+<!-- Modal editar cliente -->
+<div class="modal fade" id="modalEditarCliente" tabindex="-1">
+<div class="modal-dialog"><div class="modal-content">
+<form method="post">
+<?=csrfInput()?>
+<input type="hidden" name="accion" value="editar">
+<input type="hidden" name="cliente_id" id="edit_cliente_id">
+<div class="modal-header">
+<h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Cliente</h5>
+<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body">
+<div class="mb-3">
+<label class="form-label"><i class="bi bi-person"></i> Nombre *</label>
+<input type="text" name="edit_nombre" id="edit_nombre" class="form-control" required>
+</div>
+<div class="mb-3">
+<label class="form-label"><i class="bi bi-envelope"></i> Email *</label>
+<input type="email" name="edit_email" id="edit_email" class="form-control" required>
+</div>
+<div class="mb-3">
+<label class="form-label"><i class="bi bi-phone"></i> Teléfono</label>
+<input type="tel" name="edit_telefono" id="edit_telefono" class="form-control">
+</div>
+<div class="mb-3">
+<label class="form-label"><i class="bi bi-lock"></i> Nueva Contraseña</label>
+<input type="password" name="edit_password" class="form-control" placeholder="Dejar vacío para no cambiar">
+<div class="form-text">Solo si quieres cambiar la contraseña (mín. 6 caracteres)</div>
+</div>
+</div>
+<div class="modal-footer">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+<button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i> Guardar</button>
+</div>
+</form>
+</div></div>
+</div>
+
+<script>
+function editarCliente(id, nombre, email, telefono) {
+    document.getElementById('edit_cliente_id').value = id;
+    document.getElementById('edit_nombre').value = nombre;
+    document.getElementById('edit_email').value = email;
+    document.getElementById('edit_telefono').value = telefono;
+    new bootstrap.Modal(document.getElementById('modalEditarCliente')).show();
+}
+</script>
 <?php include 'includes/footer.php'; ?>

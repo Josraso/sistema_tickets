@@ -19,13 +19,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_estado'])) {
         $db->prepare("UPDATE tickets SET estado = ?, fecha_actualizacion = NOW() WHERE id = ?")->execute([$nuevo_estado, $tid]);
         if ($nuevo_estado === 'terminado' && $viejo !== 'terminado') {
             $db->prepare("UPDATE tickets SET fecha_cierre = NOW() WHERE id = ? AND fecha_cierre IS NULL")->execute([$tid]);
-            // Registrar tiempo
+            // Registrar tiempo (sumativo)
             $horas   = (int)($_POST['tiempo_horas'] ?? 0);
             $minutos = (int)($_POST['tiempo_minutos'] ?? 0);
             $tiempo  = $horas * 60 + $minutos;
             if ($tiempo > 0) {
-                $db->prepare("UPDATE tickets SET tiempo_resolucion = ? WHERE id = ?")->execute([$tiempo, $tid]);
-                registrarHistorial($tid, 'Tiempo registrado', formatMinutos($tiempo));
+                $tiempo_previo = (int)($ticket['tiempo_resolucion'] ?? 0);
+                $tiempo_total = $tiempo_previo + $tiempo;
+                $db->prepare("UPDATE tickets SET tiempo_resolucion = ? WHERE id = ?")->execute([$tiempo_total, $tid]);
+                registrarHistorial($tid, 'Tiempo registrado', formatMinutos($tiempo) . ($tiempo_previo > 0 ? ' (total: ' . formatMinutos($tiempo_total) . ')' : ''));
             }
         }
         // Si se reabre un ticket terminado, limpiar la bandera de incidencia

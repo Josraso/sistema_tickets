@@ -4,6 +4,25 @@ session_start();
 if (!estaLogueado() || !esAdmin()) redirigir('../login.php');
 
 $db = getDB();
+$success = $error = '';
+
+// Handler POST
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    verificarTokenCSRF();
+    $accion = $_POST['accion'] ?? '';
+    $tid = (int)($_POST['ticket_id'] ?? 0);
+
+    if ($accion === 'eliminar') {
+        // Eliminar respuestas, archivos, historial, tags del ticket
+        $db->prepare("DELETE FROM respuestas WHERE ticket_id = ?")->execute([$tid]);
+        $db->prepare("DELETE FROM archivos WHERE ticket_id = ?")->execute([$tid]);
+        $db->prepare("DELETE FROM historial_tickets WHERE ticket_id = ?")->execute([$tid]);
+        $db->prepare("DELETE FROM ticket_tags WHERE ticket_id = ?")->execute([$tid]);
+        $db->prepare("DELETE FROM tickets WHERE id = ?")->execute([$tid]);
+        $success = "Ticket #$tid eliminado";
+        registrarLog('eliminar_ticket', "Ticket #$tid eliminado");
+    }
+}
 
 // Datos filtros
 $clientes = $db->query("SELECT DISTINCT u.id, u.nombre FROM usuarios u JOIN tickets t ON u.id = t.usuario_id ORDER BY u.nombre")->fetchAll();
@@ -15,7 +34,9 @@ $ft = $_GET['tag'] ?? ''; $ftxt = $_GET['texto'] ?? ''; $fc = $_GET['cliente'] ?
 $finc = $_GET['incidencia'] ?? '';
 
 $where = ["1=1"]; $params = [];
-if (!empty($fe)) { $where[] = "t.estado = ?"; $params[] = $fe; }
+// Excluir terminados por defecto, salvo que se filtrepor terminado explícitamente
+if (empty($fe)) { $where[] = "t.estado != 'terminado'"; }
+elseif (!empty($fe)) { $where[] = "t.estado = ?"; $params[] = $fe; }
 if (!empty($fw)) { $where[] = "t.web_id = ?"; $params[] = (int)$fw; }
 if (!empty($fp)) { $where[] = "t.prioridad = ?"; $params[] = $fp; }
 if (!empty($fc)) { $where[] = "t.usuario_id = ?"; $params[] = (int)$fc; }
@@ -35,14 +56,14 @@ if (isset($_GET['exportar']) && $_GET['exportar'] === 'csv') {
     header('Content-Disposition: attachment; filename="tickets_export_' . date('Y-m-d_H-i') . '.csv"');
     echo "\xEF\xBB\xBF"; // BOM UTF-8
     $out = fopen('php://output', 'w');
-    fputcsv($out, ['ID','Cliente','Asunto','Web','Estado','Prioridad','Incidencia','Tags','Fecha Creación','Fecha Actualización'], ';');
+    fputcsv($out, ['ID','Cliente','Asunto','Web','Estado','Prioridad','Incidencia','Tags','Tiempo (min)','Fecha Creación','Fecha Actualización'], ';');
     foreach ($tickets as $t) {
         $tags_t = obtenerTagsTicket($t['id']);
         $tags_str = implode(', ', array_column($tags_t, 'nombre'));
         fputcsv($out, [
             $t['id'], $t['cliente_nombre'], $t['asunto'], $t['web_nombre'],
             $t['estado'], $t['prioridad'], $t['tiene_incidencia'] ? 'Sí' : 'No',
-            $tags_str, formatearFecha($t['fecha_creacion']), formatearFecha($t['fecha_actualizacion'])
+            $tags_str, $t['tiempo_resolucion'] ?? 0, formatearFecha($t['fecha_creacion']), formatearFecha($t['fecha_actualizacion'])
         ], ';');
     }
     fclose($out);
@@ -63,6 +84,8 @@ $exp_url = 'tickets.php?' . http_build_query($exp_params);
 <a href="<?=e($exp_url)?>" class="btn btn-outline-success btn-sm"><i class="bi bi-download"></i> CSV</a>
 </div>
 </div>
+<?php if ($error): ?><div class="alert alert-danger"><i class="bi bi-exclamation-circle"></i> <?=e($error)?></div><?php endif; ?>
+<?php if ($success): ?><div class="alert alert-success"><i class="bi bi-check-circle"></i> <?=e($success)?></div><?php endif; ?>
 <!-- Filtros -->
 <div class="filtros">
 <form method="get" class="row g-2 align-items-end">
@@ -125,7 +148,11 @@ $exp_url = 'tickets.php?' . http_build_query($exp_params);
 <td><?=estadoBadge($t['estado'])?></td>
 <td><?=prioridadBadge($t['prioridad'])?></td>
 <td><?=formatearFecha($t['fecha_actualizacion'])?></td>
-<td><a href="ver_ticket.php?id=<?=$t['id']?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a></td>
+<td class="d-flex gap-1">
+<a href="ver_ticket.php?id=<?=$t['id']?>" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+<form method="post" style="display:inline" onsubmit="return confirm('¿Eliminar ticket #<?=$t['id']?>? Se eliminarán todas sus respuestas, archivos e historial. Esta acción no se puede deshacer.')"><?=csrfInput()?><input type="hidden" name="accion" value="eliminar"><input type="hidden" name="ticket_id" value="<?=$t['id']?>">
+<button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button></form>
+</td>
 </tr>
 <?php endforeach; ?>
 </tbody></table></div>

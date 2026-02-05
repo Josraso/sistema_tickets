@@ -193,7 +193,7 @@ function renderArchivos($archivos) {
     if (empty($archivos)) return '';
     $html = '<div class="archivos-container">';
     foreach ($archivos as $a) {
-        $url = 'uploads/' . htmlspecialchars($a['nombre_guardado']);
+        $url = '/uploads/' . htmlspecialchars($a['nombre_guardado']);
         $ext = strtolower($a['extension']);
         $icono = 'bi-paperclip';
         if (in_array($ext, ['jpg','jpeg','png','gif'])) $icono = 'bi-image';
