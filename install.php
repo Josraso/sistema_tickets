@@ -104,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['paso'] ?? '') === '2') {
                 mensaje TEXT NOT NULL,
                 es_nota_interna TINYINT(1) DEFAULT 0,
                 es_email TINYINT(1) DEFAULT 0,
+                leido_admin TINYINT(1) DEFAULT 0,
                 fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (ticket_id) REFERENCES tickets(id),
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id)

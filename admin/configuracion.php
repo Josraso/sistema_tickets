@@ -16,6 +16,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         guardarConfig('dominio_mail', limpiar($_POST['dominio_mail'] ?? ''));
         guardarConfig('max_subida', (int)($_POST['max_subida'] ?? 30));
         guardarConfig('registro_activo', isset($_POST['registro_activo']) ? '1' : '0');
+        guardarConfig('asignado_por_defecto', (string)(int)($_POST['asignado_por_defecto'] ?? 0));
         $success = 'Configuración general guardada';
     } elseif ($tab === 'smtp') {
         guardarConfig('smtp_host', limpiar($_POST['smtp_host'] ?? ''));
@@ -76,6 +77,16 @@ include 'includes/header.php';
 <input class="form-check-input" type="checkbox" id="chkRegistro" name="registro_activo" <?=obtenerConfig('registro_activo','1')==='1'?'checked':'';?>>
 <label class="form-check-label" for="chkRegistro"><i class="bi bi-person-plus"></i> Permitir registro libre de clientes</label>
 </div>
+</div>
+<div class="col-12 mb-3">
+<label class="form-label"><i class="bi bi-person-plus"></i> Asignar tickets por defecto a</label>
+<select name="asignado_por_defecto" class="form-select">
+<option value="0" <?=obtenerConfig('asignado_por_defecto','0')==='0'?'selected':'';?>>Sin asignar</option>
+<?php foreach ($db->query("SELECT * FROM usuarios WHERE rol = 'admin' ORDER BY nombre")->fetchAll() as $adm): ?>
+<option value="<?=$adm['id']?>" <?=obtenerConfig('asignado_por_defecto','0')===(string)$adm['id']?'selected':'';?>><?=e($adm['nombre'])?> (<?=e($adm['email'])?>)</option>
+<?php endforeach; ?>
+</select>
+<div class="form-text">Cuando se cree un ticket nuevo se asignará automáticamente a esta persona</div>
 </div>
 </div>
 <button type="submit" class="btn btn-primary"><i class="bi bi-floppy-disk"></i> Guardar</button>

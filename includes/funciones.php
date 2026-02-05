@@ -272,10 +272,17 @@ function migraciones() {
     $done = true;
     try {
         $db = getDB();
+        // tickets: tiempo_resolucion
         $cols = $db->query("SHOW COLUMNS FROM tickets")->fetchAll();
         $campos = array_column($cols, 'Field');
         if (!in_array('tiempo_resolucion', $campos)) {
             $db->exec("ALTER TABLE tickets ADD COLUMN tiempo_resolucion INT DEFAULT NULL AFTER fecha_cierre");
+        }
+        // respuestas: leido_admin
+        $cols2 = $db->query("SHOW COLUMNS FROM respuestas")->fetchAll();
+        $campos2 = array_column($cols2, 'Field');
+        if (!in_array('leido_admin', $campos2)) {
+            $db->exec("ALTER TABLE respuestas ADD COLUMN leido_admin TINYINT(1) DEFAULT 0 AFTER es_email");
         }
     } catch (Exception $e) { /* silencio */ }
 }
@@ -291,4 +298,25 @@ function formatMinutos($min) {
     if ($h > 0 && $m > 0) return "{$h}h {$m}m";
     if ($h > 0) return "{$h}h";
     return "{$m}m";
+}
+
+// ============================================================
+// RESPUESTAS NUEVAS (badge admin)
+// ============================================================
+
+function contadorRespuestasNuevas() {
+    try {
+        $db = getDB();
+        $st = $db->query("SELECT COUNT(DISTINCT r.ticket_id) as t FROM respuestas r WHERE r.leido_admin = 0 AND r.es_nota_interna = 0");
+        return $st->fetch()['t'];
+    } catch (Exception $e) {
+        return 0;
+    }
+}
+
+function marcarRespuestaLeidas($ticket_id) {
+    try {
+        $db = getDB();
+        $db->prepare("UPDATE respuestas SET leido_admin = 1 WHERE ticket_id = ? AND es_nota_interna = 0")->execute([$ticket_id]);
+    } catch (Exception $e) {}
 }

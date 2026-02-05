@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
-<?php migraciones(); $inc = contadorIncidencias(); ?>
+<?php migraciones(); $inc = contadorIncidencias(); $resp = contadorRespuestasNuevas(); ?>
 <nav class="navbar navbar-expand-lg navbar-dark" style="background:#343a40;">
 <div class="container-fluid">
 <a class="navbar-brand" href="index.php"><i class="bi bi-shield-fill"></i> ADMIN</a>
@@ -18,7 +18,7 @@
 <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="index.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
 <li class="nav-item"><a class="nav-link" href="tickets.php">
-<i class="bi bi-ticket"></i> Tickets <?php if($inc>0): ?><span class="badge-inc"><?=$inc?></span><?php endif; ?>
+<i class="bi bi-ticket"></i> Tickets <?php if($resp>0): ?><span class="badge-resp" title="<?=$resp?> respuesta<?=$resp>1?'s':''?> nueva"><?=$resp?></span><?php endif; ?><?php if($inc>0): ?><span class="badge-inc" title="<?=$inc?> incidencia<?=$inc>1?'s':''?>"><?=$inc?></span><?php endif; ?>
 </a></li>
 <li class="nav-item"><a class="nav-link" href="clientes.php"><i class="bi bi-people"></i> Clientes</a></li>
 <li class="nav-item"><a class="nav-link" href="webs.php"><i class="bi bi-globe"></i> Webs</a></li>

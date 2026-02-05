@@ -24,7 +24,9 @@ if (!empty($ftxt)) { $where[] = "(t.asunto LIKE ? OR t.mensaje LIKE ?)"; $params
 $jt = '';
 if (!empty($ft)) { $jt = " JOIN ticket_tags tt ON t.id = tt.ticket_id"; $where[] = "tt.tag_id = ?"; $params[] = (int)$ft; }
 
-$sql = "SELECT t.*, w.nombre as web_nombre, u.nombre as cliente_nombre FROM tickets t JOIN webs w ON t.web_id = w.id JOIN usuarios u ON t.usuario_id = u.id $jt WHERE " . implode(" AND ", $where) . " ORDER BY t.tiene_incidencia DESC, t.fecha_actualizacion DESC";
+$sql = "SELECT t.*, w.nombre as web_nombre, u.nombre as cliente_nombre,
+        (SELECT COUNT(*) FROM respuestas WHERE ticket_id = t.id AND leido_admin = 0 AND es_nota_interna = 0) as resp_nuevas
+        FROM tickets t JOIN webs w ON t.web_id = w.id JOIN usuarios u ON t.usuario_id = u.id $jt WHERE " . implode(" AND ", $where) . " ORDER BY t.tiene_incidencia DESC, t.fecha_actualizacion DESC";
 $st = $db->prepare($sql); $st->execute($params); $tickets = $st->fetchAll();
 
 // CSV export
@@ -112,10 +114,12 @@ $exp_url = 'tickets.php?' . http_build_query($exp_params);
 <?php if (empty($tickets)): ?><tr><td colspan="9" class="text-center text-muted py-4">Sin tickets</td></tr><?php endif; ?>
 <?php foreach ($tickets as $t): ?>
 <?php $tags = obtenerTagsTicket($t['id']); ?>
-<tr <?php if($t['tiene_incidencia']): ?>class="table-danger"<?php endif; ?>>
+<tr <?php if($t['tiene_incidencia']): ?>class="table-danger"<?php elseif($t['resp_nuevas']>0): ?>class="table-info"<?php endif; ?>>
 <td><strong>#<?=$t['id']?></strong></td>
 <td><?=e($t['cliente_nombre'])?></td>
-<td><?=e($t['asunto'])?> <?php if($t['tiene_incidencia']): ?><span class="etiqueta-incidencia">Incidencia</span><?php endif; ?></td>
+<td><?=e($t['asunto'])?>
+<?php if ($t['resp_nuevas'] > 0): ?><span class="badge bg-info text-dark ms-1"><i class="bi bi-chat-fill"></i> <?=$t['resp_nuevas']?> nueva<?=$t['resp_nuevas']>1?'s':''?></span><?php endif; ?>
+<?php if($t['tiene_incidencia']): ?><span class="etiqueta-incidencia">Incidencia</span><?php endif; ?></td>
 <td><?=e($t['web_nombre'])?></td>
 <td><?=renderTags($tags)?></td>
 <td><?=estadoBadge($t['estado'])?></td>

@@ -43,6 +43,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+        // Asignar por defecto
+        $default_asign = (int)obtenerConfig('asignado_por_defecto', 0);
+        if ($default_asign > 0) {
+            $db->prepare("UPDATE tickets SET asignado_a = ? WHERE id = ?")->execute([$default_asign, $tid]);
+            registrarHistorial($tid, 'Asignación automática', "Asignado por defecto");
+        }
         registrarHistorial($tid, 'Ticket creado', "Creado por " . $_SESSION['usuario_nombre']);
         registrarLog('ticket_creado', "Ticket #$tid");
         // Email

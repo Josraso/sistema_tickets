@@ -104,6 +104,9 @@ $st->execute([$tid]); $historial = $st->fetchAll();
 
 $admins = $db->query("SELECT * FROM usuarios WHERE rol = 'admin'")->fetchAll();
 
+// Marcar respuestas del cliente como leídas
+marcarRespuestaLeidas($tid);
+
 include 'includes/header.php';
 ?>
 
