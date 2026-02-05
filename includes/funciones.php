@@ -261,3 +261,34 @@ function contadorIncidencias() {
         return 0;
     }
 }
+
+// ============================================================
+// MIGRACIONES (se ejecutan una sola vez por petición)
+// ============================================================
+
+function migraciones() {
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    try {
+        $db = getDB();
+        $cols = $db->query("SHOW COLUMNS FROM tickets")->fetchAll();
+        $campos = array_column($cols, 'Field');
+        if (!in_array('tiempo_resolucion', $campos)) {
+            $db->exec("ALTER TABLE tickets ADD COLUMN tiempo_resolucion INT DEFAULT NULL AFTER fecha_cierre");
+        }
+    } catch (Exception $e) { /* silencio */ }
+}
+
+// ============================================================
+// TIEMPO
+// ============================================================
+
+function formatMinutos($min) {
+    if ($min === null || $min === 0) return '—';
+    $h = (int)($min / 60);
+    $m = $min % 60;
+    if ($h > 0 && $m > 0) return "{$h}h {$m}m";
+    if ($h > 0) return "{$h}h";
+    return "{$m}m";
+}

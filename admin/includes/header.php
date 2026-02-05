@@ -9,7 +9,7 @@
 <link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
-<?php $inc = contadorIncidencias(); ?>
+<?php migraciones(); $inc = contadorIncidencias(); ?>
 <nav class="navbar navbar-expand-lg navbar-dark" style="background:#343a40;">
 <div class="container-fluid">
 <a class="navbar-brand" href="index.php"><i class="bi bi-shield-fill"></i> ADMIN</a>

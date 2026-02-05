@@ -56,8 +56,8 @@ $st->execute([$tid]); $ticket = $st->fetch();
 $st = $db->prepare("SELECT r.*, u.nombre as usu_nombre FROM respuestas r JOIN usuarios u ON r.usuario_id = u.id WHERE r.ticket_id = ? AND r.es_nota_interna = 0 ORDER BY r.fecha_creacion");
 $st->execute([$tid]); $respuestas = $st->fetchAll();
 
-$tags = obtenerTagsTicket($tid);
-$archivos = obtenerArchivos($tid);
+$tags      = obtenerTagsTicket($tid);
+$archivos  = obtenerArchivos($tid);
 
 $st = $db->prepare("SELECT h.*, u.nombre as usu_nombre FROM historial_tickets h LEFT JOIN usuarios u ON h.usuario_id = u.id WHERE h.ticket_id = ? ORDER BY h.fecha DESC");
 $st->execute([$tid]); $historial = $st->fetchAll();
@@ -68,6 +68,7 @@ include 'includes/header.php';
 <h4><i class="bi bi-ticket"></i> Ticket #<?=$ticket['id']?></h4>
 <a href="tickets.php" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-left"></i> Volver</a>
 </div>
+
 <!-- Info ticket -->
 <div class="card">
 <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -105,13 +106,20 @@ include 'includes/header.php';
 <?php endforeach; ?>
 
 <?php if ($ticket['estado'] !== 'terminado'): ?>
-<form method="post" enctype="multipart/form-data" class="mt-3">
+<!-- Botón expander + formulario oculto -->
+<div class="mt-3">
+<button class="btn btn-outline-primary btn-sm" id="btnMostrarResp" onclick="toggleRespuesta()"><i class="bi bi-chat-text"></i> Responder</button>
+</div>
+<div id="formRespuesta" style="display:none; margin-top:1rem;">
+<form method="post" enctype="multipart/form-data">
 <?=csrfInput()?>
 <div class="mb-3"><label class="form-label"><i class="bi bi-chat-text"></i> Tu respuesta</label>
 <textarea name="mensaje" class="form-control" rows="4" required></textarea></div>
 <?=renderArchivoUpload('archivos_resp', true)?>
-<button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Enviar</button>
+<button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Enviar</button>
+<button type="button" class="btn btn-link btn-sm text-muted p-0 ms-2" onclick="toggleRespuesta()">Cancelar</button>
 </form>
+</div>
 <?php else: ?>
 <div class="alert alert-info mt-3">
 <i class="bi bi-info-circle"></i> Este ticket está <strong>cerrado</strong>.
@@ -127,10 +135,13 @@ include 'includes/header.php';
 </div>
 </div>
 
-<!-- Historial -->
+<!-- Historial colapsible -->
 <div class="card mt-3">
-<div class="card-header"><i class="bi bi-clock-history"></i> Historial</div>
-<div class="card-body">
+<div class="card-header d-flex justify-content-between align-items-center">
+<span><i class="bi bi-clock-history"></i> Historial</span>
+<button class="btn btn-sm btn-outline-secondary" onclick="toggleHistorial()"><i class="bi bi-chevron-down" id="iconHist"></i> Mostrar (<?=count($historial)?>)</button>
+</div>
+<div id="historialBody" class="card-body" style="display:none;">
 <?php if (empty($historial)): ?><p class="text-muted small">Sin historial registrado</p>
 <?php else: ?>
 <?php foreach ($historial as $h): ?>
@@ -149,5 +160,31 @@ elseif (strpos($h['accion'], 'Respuesta') !== false) $cls = 'ev-resp';
 <?php endif; ?>
 </div>
 </div>
-<div class="mt-3"><a href="tickets.php" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Volver</a></div>
+
+<div class="mt-3"><a href="tickets.php" class="btn btn-secondary btn-sm"><i class="bi bi-arrow-left"></i> Volver</a></div>
+
+<script>
+function toggleRespuesta() {
+    var f = document.getElementById('formRespuesta');
+    var b = document.getElementById('btnMostrarResp');
+    if (f.style.display === 'none') {
+        f.style.display = 'block';
+        b.style.display = 'none';
+    } else {
+        f.style.display = 'none';
+        b.style.display = 'inline-block';
+    }
+}
+function toggleHistorial() {
+    var body = document.getElementById('historialBody');
+    var icon = document.getElementById('iconHist');
+    if (body.style.display === 'none') {
+        body.style.display = 'block';
+        icon.className = 'bi bi-chevron-up';
+    } else {
+        body.style.display = 'none';
+        icon.className = 'bi bi-chevron-down';
+    }
+}
+</script>
 <?php include 'includes/footer.php'; ?>

@@ -91,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['paso'] ?? '') === '2') {
                 fecha_creacion DATETIME DEFAULT CURRENT_TIMESTAMP,
                 fecha_actualizacion DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                 fecha_cierre DATETIME,
+                tiempo_resolucion INT DEFAULT NULL,
                 FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
                 FOREIGN KEY (web_id) REFERENCES webs(id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
