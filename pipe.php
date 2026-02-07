@@ -98,6 +98,7 @@ try {
 
 // Extraer cuerpo (texto plano preferido)
 $body_text = '';
+$body_html = '';
 $attachments = [];
 
 if (str_contains($content_type, 'multipart')) {
@@ -140,6 +141,8 @@ if (str_contains($content_type, 'multipart')) {
                 }
             } elseif (str_contains($sub_ct, 'text/plain') && empty($body_text)) {
                 $body_text = $sub_body;
+            } elseif (str_contains($sub_ct, 'text/html') && empty($body_html)) {
+                $body_html = $sub_body;
             }
         }
     }
@@ -149,6 +152,17 @@ if (str_contains($content_type, 'multipart')) {
     if ($te === 'base64') { $body_text = base64_decode($body_raw); }
     elseif ($te === 'quoted-printable') { $body_text = quoted_printable_decode($body_raw); }
     else { $body_text = $body_raw; }
+
+    // Verificar si es HTML
+    if (str_contains(strtolower($content_type), 'text/html')) {
+        $body_html = $body_text;
+        $body_text = '';
+    }
+}
+
+// Preferir texto plano, si no convertir HTML a texto
+if (empty($body_text) && !empty($body_html)) {
+    $body_text = htmlToPlainText($body_html);
 }
 
 // Limpiar body: eliminar quoted replies (líneas que empiezan con >)
@@ -183,9 +197,6 @@ if (!empty($from_email)) {
 }
 // Si no se encuentra, usar el usuario del ticket (respuesta sin autenticación)
 if ($usuario_id === null) $usuario_id = $ticket['usuario_id'];
-
-// Limpiar HTML si existe
-$body_text = limpiarHTML($body_text);
 
 // Insertar respuesta
 if (!empty($body_text)) {
@@ -228,17 +239,33 @@ function log_pipe($msg) {
     file_put_contents($base . '/logs/pipe.log', date('Y-m-d H:i:s') . " | $msg\n", FILE_APPEND);
 }
 
-function limpiarHTML($text) {
-    // Si contiene HTML, limpiarlo
-    if (preg_match('/<(html|body|div|p|br|span|table)/i', $text)) {
-        // Eliminar todos los tags HTML
-        $text = strip_tags($text);
-        // Decodificar entidades HTML (&lt; &gt; &quot; etc)
-        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        // Limpiar espacios múltiples y saltos de línea excesivos
-        $text = preg_replace('/\n{3,}/', "\n\n", $text);
-        $text = preg_replace('/ {2,}/', ' ', $text);
-    }
+function htmlToPlainText($html) {
+    // Convertir HTML a texto plano legible
+
+    // Primero decodificar entidades HTML comunes
+    $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+    // Reemplazar saltos de línea HTML por \n
+    $html = preg_replace('/<br\s*\/?>/i', "\n", $html);
+    $html = preg_replace('/<\/p>/i', "\n\n", $html);
+    $html = preg_replace('/<\/div>/i', "\n", $html);
+    $html = preg_replace('/<\/h[1-6]>/i', "\n\n", $html);
+    $html = preg_replace('/<\/li>/i', "\n", $html);
+    $html = preg_replace('/<li[^>]*>/i', "• ", $html);
+
+    // Eliminar scripts y styles
+    $html = preg_replace('/<script[^>]*?>.*?<\/script>/is', '', $html);
+    $html = preg_replace('/<style[^>]*?>.*?<\/style>/is', '', $html);
+
+    // Eliminar todos los tags HTML restantes
+    $text = strip_tags($html);
+
+    // Limpiar espacios en blanco excesivos
+    $text = preg_replace('/[ \t]+/', ' ', $text); // Múltiples espacios a uno
+    $text = preg_replace('/\n[ \t]+/', "\n", $text); // Espacios al inicio de línea
+    $text = preg_replace('/[ \t]+\n/', "\n", $text); // Espacios al final de línea
+    $text = preg_replace('/\n{3,}/', "\n\n", $text); // Máximo 2 saltos de línea seguidos
+
     return trim($text);
 }
 

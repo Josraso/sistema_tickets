@@ -119,14 +119,21 @@ foreach ($emails as $num) {
     // Obtener cuerpo
     $structure = imap_fetchstructure($imap, $num);
     $body_text = '';
+    $body_html = '';
     $attachments = [];
 
     if ($structure->type === 0) {
         // Simple text
         $body_raw = imap_fetchbody($imap, $num, 1);
-        $body_text = decodeBody($body_raw, $structure);
+        $decoded = decodeBody($body_raw, $structure);
+        // Verificar si es HTML o texto plano
+        if (isset($structure->subtype) && strtoupper($structure->subtype) === 'HTML') {
+            $body_html = $decoded;
+        } else {
+            $body_text = $decoded;
+        }
     } elseif ($structure->type === 1 && isset($structure->parts)) {
-        // Multipart
+        // Multipart - buscar text/plain primero, luego text/html
         foreach ($structure->parts as $i => $part) {
             $idx = $i + 1;
             $content = imap_fetchbody($imap, $num, (string)$idx);
@@ -135,11 +142,21 @@ foreach ($emails as $num) {
 
             if (!empty($filename)) {
                 $attachments[] = ['name' => $filename, 'data' => $decoded];
-            } elseif ($part->type === 0 && empty($body_text)) {
-                // Texto
-                $body_text = $decoded;
+            } elseif ($part->type === 0) {
+                // Es texto
+                $subtype = strtoupper($part->subtype ?? 'PLAIN');
+                if ($subtype === 'PLAIN' && empty($body_text)) {
+                    $body_text = $decoded;
+                } elseif ($subtype === 'HTML' && empty($body_html)) {
+                    $body_html = $decoded;
+                }
             }
         }
+    }
+
+    // Preferir texto plano, si no hay convertir HTML a texto
+    if (empty($body_text) && !empty($body_html)) {
+        $body_text = htmlToPlainText($body_html);
     }
 
     // Limpiar quoted replies
@@ -164,9 +181,6 @@ foreach ($emails as $num) {
         $u = $st->fetch();
         if ($u) $usuario_id = $u['id'];
     }
-
-    // Limpiar HTML si existe
-    $body_text = limpiarHTML($body_text);
 
     // Insertar respuesta
     $respuesta_id = null;
@@ -204,17 +218,33 @@ imap_close($imap);
 log_imap("Polling finalizado");
 
 // ============ HELPERS ============
-function limpiarHTML($text) {
-    // Si contiene HTML, limpiarlo
-    if (preg_match('/<(html|body|div|p|br|span|table)/i', $text)) {
-        // Eliminar todos los tags HTML
-        $text = strip_tags($text);
-        // Decodificar entidades HTML (&lt; &gt; &quot; etc)
-        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        // Limpiar espacios múltiples y saltos de línea excesivos
-        $text = preg_replace('/\n{3,}/', "\n\n", $text);
-        $text = preg_replace('/ {2,}/', ' ', $text);
-    }
+function htmlToPlainText($html) {
+    // Convertir HTML a texto plano legible
+
+    // Primero decodificar entidades HTML comunes
+    $html = html_entity_decode($html, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+    // Reemplazar saltos de línea HTML por \n
+    $html = preg_replace('/<br\s*\/?>/i', "\n", $html);
+    $html = preg_replace('/<\/p>/i', "\n\n", $html);
+    $html = preg_replace('/<\/div>/i', "\n", $html);
+    $html = preg_replace('/<\/h[1-6]>/i', "\n\n", $html);
+    $html = preg_replace('/<\/li>/i', "\n", $html);
+    $html = preg_replace('/<li[^>]*>/i', "• ", $html);
+
+    // Eliminar scripts y styles
+    $html = preg_replace('/<script[^>]*?>.*?<\/script>/is', '', $html);
+    $html = preg_replace('/<style[^>]*?>.*?<\/style>/is', '', $html);
+
+    // Eliminar todos los tags HTML restantes
+    $text = strip_tags($html);
+
+    // Limpiar espacios en blanco excesivos
+    $text = preg_replace('/[ \t]+/', ' ', $text); // Múltiples espacios a uno
+    $text = preg_replace('/\n[ \t]+/', "\n", $text); // Espacios al inicio de línea
+    $text = preg_replace('/[ \t]+\n/', "\n", $text); // Espacios al final de línea
+    $text = preg_replace('/\n{3,}/', "\n\n", $text); // Máximo 2 saltos de línea seguidos
+
     return trim($text);
 }
 
