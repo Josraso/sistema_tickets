@@ -277,10 +277,10 @@ include 'includes/header.php';
 </div>
 </div>
 <div id="editor" contenteditable="true" class="form-control" style="min-height:120px;max-height:400px;overflow-y:auto;"></div>
-<textarea name="mensaje" id="txtMensaje" style="display:none;" required></textarea>
+<textarea name="mensaje" id="txtMensaje" style="display:none;"></textarea>
 </div>
 <?=renderArchivoUpload('archivos_admin', true)?>
-<button type="submit" name="responder" value="1" class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Enviar</button>
+<button type="submit" name="responder" value="1" class="btn btn-primary btn-sm" onclick="return enviarRespuesta()"><i class="bi bi-send"></i> Enviar</button>
 <button type="button" class="btn btn-link btn-sm text-muted p-0 ms-2" onclick="toggleRespuesta()">Cancelar</button>
 </form>
 </div>
@@ -446,41 +446,36 @@ function insertarRR() {
         sel.selectedIndex = 0;
     }
 }
-// Sincronizar editor con textarea oculto antes de enviar
-(function() {
-    var form = document.getElementById('formResponder');
-    if (!form) return;
+// Enviar respuesta
+function enviarRespuesta() {
+    var editor = document.getElementById('editor');
+    var textarea = document.getElementById('txtMensaje');
 
-    form.onsubmit = function(e) {
-        var editor = document.getElementById('editor');
-        var textarea = document.getElementById('txtMensaje');
-        if (!editor || !textarea) return true;
+    // Convertir HTML a texto plano con saltos de línea
+    var html = editor.innerHTML;
+    var text = html
+        .replace(/<div>/gi, '\n')
+        .replace(/<\/div>/gi, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<p>/gi, '')
+        .replace(/<li>/gi, '• ')
+        .replace(/<\/li>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .trim();
 
-        // Convertir HTML a texto plano con saltos de línea
-        var html = editor.innerHTML;
-        var text = html
-            .replace(/<div>/gi, '\n')
-            .replace(/<\/div>/gi, '')
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/<\/p>/gi, '\n')
-            .replace(/<p>/gi, '')
-            .replace(/<li>/gi, '• ')
-            .replace(/<\/li>/gi, '\n')
-            .replace(/<[^>]+>/g, '')
-            .replace(/&nbsp;/g, ' ')
-            .replace(/&lt;/g, '<')
-            .replace(/&gt;/g, '>')
-            .replace(/&amp;/g, '&')
-            .trim();
-        textarea.value = text;
-        if (!text) {
-            e.preventDefault();
-            alert('El mensaje no puede estar vacío');
-            return false;
-        }
-        return true;
-    };
-})();
+    if (!text) {
+        alert('El mensaje no puede estar vacío');
+        return false;
+    }
+
+    textarea.value = text;
+    return true;
+}
 function editarRespuesta(id, mensaje) {
     document.getElementById('edit_resp_id').value = id;
     document.getElementById('edit_resp_mensaje').value = mensaje;
