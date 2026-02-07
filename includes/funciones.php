@@ -28,6 +28,37 @@ function estaImpersonando() {
     return isset($_SESSION['impersonando']) && $_SESSION['impersonando'] === true;
 }
 
+function configurarDuracionSesion($usuario_id) {
+    try {
+        $db = getDB();
+        $st = $db->prepare("SELECT sesion_duracion FROM usuarios WHERE id = ?");
+        $st->execute([$usuario_id]);
+        $usuario = $st->fetch();
+
+        // Si el usuario tiene configuración personalizada, usarla
+        $minutos = $usuario['sesion_duracion'] ?? 30; // Default 30 minutos
+        $segundos = $minutos * 60;
+
+        // Configurar cookie de sesión con la duración especificada
+        $cookieParams = session_get_cookie_params();
+        session_set_cookie_params([
+            'lifetime' => $segundos,
+            'path' => $cookieParams['path'],
+            'domain' => $cookieParams['domain'],
+            'secure' => $cookieParams['secure'],
+            'httponly' => true,
+            'samesite' => 'Lax'
+        ]);
+
+        // Regenerar ID de sesión con nueva cookie
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            session_regenerate_id(true);
+        }
+    } catch (Exception $e) {
+        // Silencio - usar default
+    }
+}
+
 function formatearFecha($fecha) {
     if (!$fecha) return '—';
     $dt = new DateTime($fecha);
@@ -294,6 +325,10 @@ function migraciones() {
         $campos3 = array_column($cols3, 'Field');
         if (!in_array('firma', $campos3)) {
             $db->exec("ALTER TABLE usuarios ADD COLUMN firma TEXT DEFAULT NULL AFTER telefono");
+        }
+        // usuarios: sesion_duracion (minutos, NULL = default 30min)
+        if (!in_array('sesion_duracion', $campos3)) {
+            $db->exec("ALTER TABLE usuarios ADD COLUMN sesion_duracion INT DEFAULT NULL AFTER firma");
         }
         // respuestas_rapidas: tabla
         $tables = $db->query("SHOW TABLES LIKE 'respuestas_rapidas'")->fetchAll();

@@ -28,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['usuario_nombre'] = $usuario['nombre'];
             $_SESSION['rol'] = $usuario['rol'];
+            configurarDuracionSesion($usuario['id']);
             $db->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = ?")->execute([$usuario['id']]);
             registrarLog('login', 'Login exitoso');
             redirigir($usuario['rol'] === 'admin' ? 'admin/' : 'dashboard.php');

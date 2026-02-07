@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['responder'])) {
     if (!empty($msg)) {
         // Añadir firma si existe y no es nota interna
         if (!$es_nota && !empty($admin_firma)) {
-            $msg .= "\n\n---\n" . $admin_firma;
+            $msg .= "\n\n---\n\n" . $admin_firma;
         }
         $db->prepare("INSERT INTO respuestas (ticket_id, usuario_id, mensaje, es_nota_interna) VALUES (?, ?, ?, ?)")
            ->execute([$tid, $_SESSION['usuario_id'], $msg, $es_nota]);

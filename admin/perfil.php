@@ -13,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email    = limpiar($_POST['email'] ?? '');
     $telefono = limpiar($_POST['telefono'] ?? '');
     $firma    = limpiar($_POST['firma'] ?? '');
+    $sesion_duracion = $_POST['sesion_duracion'] ?? null;
     $pass     = $_POST['password'] ?? '';
     $pass2    = $_POST['password2'] ?? '';
 
@@ -24,8 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($st->fetch()) {
             $error = 'Ese email ya está en uso por otra cuenta';
         } else {
-            $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, telefono = ?, firma = ? WHERE id = ?")->execute([$nombre, $email, $telefono, $firma, $uid]);
+            // Convertir sesion_duracion a NULL si es vacío
+            $sesion_val = ($sesion_duracion === '' || $sesion_duracion === null) ? null : (int)$sesion_duracion;
+            $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, telefono = ?, firma = ?, sesion_duracion = ? WHERE id = ?")->execute([$nombre, $email, $telefono, $firma, $sesion_val, $uid]);
             $_SESSION['usuario_nombre'] = $nombre;
+            // Reconfigurar duración de sesión inmediatamente
+            configurarDuracionSesion($uid);
 
             if (!empty($pass) || !empty($pass2)) {
                 if ($pass !== $pass2)       { $error = 'Las contraseñas no coinciden'; }
@@ -98,6 +103,19 @@ include 'includes/header.php';
 <label class="form-label"><i class="bi bi-pencil-square"></i> Firma (aparece al final de tus respuestas)</label>
 <textarea name="firma" class="form-control" rows="3" placeholder="Ejemplo: Saludos,&#10;Juan Pérez&#10;Soporte Técnico"><?=e($usuario['firma'] ?? '')?></textarea>
 <div class="form-text">La firma se añadirá automáticamente al final de cada respuesta que envíes</div>
+</div>
+<div class="mb-3">
+<label class="form-label"><i class="bi bi-clock-history"></i> Duración de sesión</label>
+<select name="sesion_duracion" class="form-select">
+<option value="">Automático (30 minutos)</option>
+<option value="30" <?=($usuario['sesion_duracion']??null)==30?'selected':''?>>30 minutos</option>
+<option value="60" <?=($usuario['sesion_duracion']??null)==60?'selected':''?>>1 hora</option>
+<option value="240" <?=($usuario['sesion_duracion']??null)==240?'selected':''?>>4 horas</option>
+<option value="480" <?=($usuario['sesion_duracion']??null)==480?'selected':''?>>8 horas</option>
+<option value="1440" <?=($usuario['sesion_duracion']??null)==1440?'selected':''?>>24 horas (1 día)</option>
+<option value="43200" <?=($usuario['sesion_duracion']??null)==43200?'selected':''?>>30 días (modo App)</option>
+</select>
+<div class="form-text">Tiempo antes de que se cierre tu sesión por inactividad. Elige "30 días" si usas la app instalada.</div>
 </div>
 <hr>
 <h6><i class="bi bi-lock"></i> Cambiar contraseña</h6>
