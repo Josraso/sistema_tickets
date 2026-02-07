@@ -25,10 +25,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($usuario['estado'] === 'bloqueado') {
             $error = 'Tu cuenta está bloqueada';
         } else {
+            // Destruir sesión actual y crear nueva con configuración correcta
+            session_destroy();
+
+            // Configurar duración de sesión ANTES de iniciar nueva sesión
+            $duracion_segundos = obtenerDuracionSesion($usuario['id']);
+            ini_set('session.gc_maxlifetime', $duracion_segundos);
+            ini_set('session.cookie_lifetime', $duracion_segundos);
+            session_set_cookie_params($duracion_segundos);
+
+            // Iniciar nueva sesión con configuración correcta
+            session_start();
             $_SESSION['usuario_id'] = $usuario['id'];
             $_SESSION['usuario_nombre'] = $usuario['nombre'];
             $_SESSION['rol'] = $usuario['rol'];
-            configurarDuracionSesion($usuario['id']);
             $db->prepare("UPDATE usuarios SET ultimo_acceso = NOW() WHERE id = ?")->execute([$usuario['id']]);
             registrarLog('login', 'Login exitoso');
             redirigir($usuario['rol'] === 'admin' ? 'admin/' : 'dashboard.php');

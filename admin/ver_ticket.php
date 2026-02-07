@@ -264,7 +264,20 @@ include 'includes/header.php';
 <?php endforeach; ?>
 </select>
 <?php endif; ?>
-<textarea name="mensaje" id="txtMensaje" class="form-control" rows="4" required></textarea>
+<!-- Barra herramientas editor -->
+<div class="btn-toolbar mb-1" role="toolbar">
+<div class="btn-group btn-group-sm me-2">
+<button type="button" class="btn btn-outline-secondary" onclick="formatDoc('bold')" title="Negrita"><i class="bi bi-type-bold"></i></button>
+<button type="button" class="btn btn-outline-secondary" onclick="formatDoc('italic')" title="Cursiva"><i class="bi bi-type-italic"></i></button>
+<button type="button" class="btn btn-outline-secondary" onclick="formatDoc('underline')" title="Subrayado"><i class="bi bi-type-underline"></i></button>
+</div>
+<div class="btn-group btn-group-sm me-2">
+<button type="button" class="btn btn-outline-secondary" onclick="formatDoc('insertUnorderedList')" title="Lista"><i class="bi bi-list-ul"></i></button>
+<button type="button" class="btn btn-outline-secondary" onclick="formatDoc('insertOrderedList')" title="Lista numerada"><i class="bi bi-list-ol"></i></button>
+</div>
+</div>
+<div id="editor" contenteditable="true" class="form-control" style="min-height:120px;max-height:400px;overflow-y:auto;"></div>
+<textarea name="mensaje" id="txtMensaje" style="display:none;" required></textarea>
 </div>
 <?=renderArchivoUpload('archivos_admin', true)?>
 <button type="submit" name="responder" value="1" class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Enviar</button>
@@ -420,18 +433,50 @@ elseif (strpos($h['accion'], 'Respuesta') !== false) $cls = 'ev-resp';
 </div>
 
 <script>
+// Editor simple
+function formatDoc(cmd) {
+    document.execCommand(cmd, false, null);
+    document.getElementById('editor').focus();
+}
+function insertarRR() {
+    var sel = document.getElementById('selRR');
+    var editor = document.getElementById('editor');
+    if (sel.value) {
+        editor.innerText = sel.value;
+        sel.selectedIndex = 0;
+    }
+}
+// Sincronizar editor con textarea oculto antes de enviar
+document.querySelector('form[enctype="multipart/form-data"]').addEventListener('submit', function(e) {
+    var editor = document.getElementById('editor');
+    var textarea = document.getElementById('txtMensaje');
+    // Convertir HTML a texto plano con saltos de línea
+    var html = editor.innerHTML;
+    var text = html
+        .replace(/<div>/gi, '\n')
+        .replace(/<\/div>/gi, '')
+        .replace(/<br\s*\/?>/gi, '\n')
+        .replace(/<\/p>/gi, '\n')
+        .replace(/<p>/gi, '')
+        .replace(/<li>/gi, '• ')
+        .replace(/<\/li>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&')
+        .trim();
+    textarea.value = text;
+    if (!text) {
+        e.preventDefault();
+        alert('El mensaje no puede estar vacío');
+        return false;
+    }
+});
 function editarRespuesta(id, mensaje) {
     document.getElementById('edit_resp_id').value = id;
     document.getElementById('edit_resp_mensaje').value = mensaje;
     new bootstrap.Modal(document.getElementById('modalEditarRespuesta')).show();
-}
-function insertarRR() {
-    var sel = document.getElementById('selRR');
-    var txt = document.getElementById('txtMensaje');
-    if (sel.value) {
-        txt.value = sel.value;
-        sel.selectedIndex = 0;
-    }
 }
 function toggleRespuesta() {
     var f = document.getElementById('formRespuesta');

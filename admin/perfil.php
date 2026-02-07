@@ -27,10 +27,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             // Convertir sesion_duracion a NULL si es vacío
             $sesion_val = ($sesion_duracion === '' || $sesion_duracion === null) ? null : (int)$sesion_duracion;
+            $sesion_cambiada = false;
+            // Detectar si cambió la configuración de sesión
+            $st_check = $db->prepare("SELECT sesion_duracion FROM usuarios WHERE id = ?");
+            $st_check->execute([$uid]);
+            $old_sesion = $st_check->fetch()['sesion_duracion'];
+            if ($old_sesion != $sesion_val) {
+                $sesion_cambiada = true;
+            }
             $db->prepare("UPDATE usuarios SET nombre = ?, email = ?, telefono = ?, firma = ?, sesion_duracion = ? WHERE id = ?")->execute([$nombre, $email, $telefono, $firma, $sesion_val, $uid]);
             $_SESSION['usuario_nombre'] = $nombre;
-            // Reconfigurar duración de sesión inmediatamente
-            configurarDuracionSesion($uid);
 
             if (!empty($pass) || !empty($pass2)) {
                 if ($pass !== $pass2)       { $error = 'Las contraseñas no coinciden'; }
@@ -41,6 +47,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } else {
                 $success = 'Perfil actualizado';
+            }
+            if ($sesion_cambiada) {
+                $success .= '. La nueva duración de sesión se aplicará en tu próximo inicio de sesión';
             }
             registrarLog('perfil_admin_actualizado', $success ?: $error);
         }

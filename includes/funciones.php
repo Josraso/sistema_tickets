@@ -28,26 +28,16 @@ function estaImpersonando() {
     return isset($_SESSION['impersonando']) && $_SESSION['impersonando'] === true;
 }
 
-function configurarDuracionSesion($usuario_id) {
+function obtenerDuracionSesion($usuario_id) {
     try {
         $db = getDB();
         $st = $db->prepare("SELECT sesion_duracion FROM usuarios WHERE id = ?");
         $st->execute([$usuario_id]);
         $usuario = $st->fetch();
-
-        // Si el usuario tiene configuración personalizada, usarla
         $minutos = $usuario['sesion_duracion'] ?? 30; // Default 30 minutos
-        $segundos = $minutos * 60;
-
-        // Configurar duración de sesión (se puede cambiar en tiempo de ejecución)
-        ini_set('session.gc_maxlifetime', $segundos);
-        ini_set('session.cookie_lifetime', $segundos);
-
-        // Guardar timestamp para validación manual
-        $_SESSION['sesion_expira'] = time() + $segundos;
-        $_SESSION['sesion_duracion'] = $minutos;
+        return $minutos * 60; // Devolver segundos
     } catch (Exception $e) {
-        // Silencio - usar default
+        return 1800; // Default 30 minutos
     }
 }
 
