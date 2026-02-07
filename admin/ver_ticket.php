@@ -447,30 +447,37 @@ function insertarRR() {
     }
 }
 // Sincronizar editor con textarea oculto antes de enviar
-document.querySelector('form[enctype="multipart/form-data"]').addEventListener('submit', function(e) {
-    var editor = document.getElementById('editor');
-    var textarea = document.getElementById('txtMensaje');
-    // Convertir HTML a texto plano con saltos de línea
-    var html = editor.innerHTML;
-    var text = html
-        .replace(/<div>/gi, '\n')
-        .replace(/<\/div>/gi, '')
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<\/p>/gi, '\n')
-        .replace(/<p>/gi, '')
-        .replace(/<li>/gi, '• ')
-        .replace(/<\/li>/gi, '\n')
-        .replace(/<[^>]+>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .trim();
-    textarea.value = text;
-    if (!text) {
-        e.preventDefault();
-        alert('El mensaje no puede estar vacío');
-        return false;
+document.addEventListener('DOMContentLoaded', function() {
+    var form = document.querySelector('form[enctype="multipart/form-data"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            var editor = document.getElementById('editor');
+            var textarea = document.getElementById('txtMensaje');
+            if (!editor || !textarea) return true;
+
+            // Convertir HTML a texto plano con saltos de línea
+            var html = editor.innerHTML;
+            var text = html
+                .replace(/<div>/gi, '\n')
+                .replace(/<\/div>/gi, '')
+                .replace(/<br\s*\/?>/gi, '\n')
+                .replace(/<\/p>/gi, '\n')
+                .replace(/<p>/gi, '')
+                .replace(/<li>/gi, '• ')
+                .replace(/<\/li>/gi, '\n')
+                .replace(/<[^>]+>/g, '')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .trim();
+            textarea.value = text;
+            if (!text) {
+                e.preventDefault();
+                alert('El mensaje no puede estar vacío');
+                return false;
+            }
+        });
     }
 });
 function editarRespuesta(id, mensaje) {

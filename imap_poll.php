@@ -315,12 +315,12 @@ function decodeBody($content, $structure) {
 
 function getFilename($part) {
     $filename = '';
-    if ($part->parameters) {
+    if (isset($part->parameters) && $part->parameters) {
         foreach ($part->parameters as $p) {
             if (strtolower($p->attribute) === 'name') $filename = $p->value;
         }
     }
-    if (empty($filename) && $part->disposition_parameters) {
+    if (empty($filename) && isset($part->disposition_parameters) && $part->disposition_parameters) {
         foreach ($part->disposition_parameters as $p) {
             if (strtolower($p->attribute) === 'filename') $filename = $p->value;
         }
