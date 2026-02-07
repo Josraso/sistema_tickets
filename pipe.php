@@ -184,10 +184,13 @@ if (!empty($from_email)) {
 // Si no se encuentra, usar el usuario del ticket (respuesta sin autenticación)
 if ($usuario_id === null) $usuario_id = $ticket['usuario_id'];
 
+// Limpiar HTML si existe
+$body_text = limpiarHTML($body_text);
+
 // Insertar respuesta
 if (!empty($body_text)) {
     $db->prepare("INSERT INTO respuestas (ticket_id, usuario_id, mensaje, es_email) VALUES (?, ?, ?, 1)")
-       ->execute([$ticket_id, $usuario_id, htmlspecialchars($body_text, ENT_QUOTES, 'UTF-8')]);
+       ->execute([$ticket_id, $usuario_id, $body_text]);
     $respuesta_id = $db->lastInsertId();
     log_pipe("Respuesta insertada (ID: $respuesta_id) en ticket #$ticket_id");
 } else {
@@ -223,6 +226,20 @@ log_pipe("Proceso completado para ticket #$ticket_id");
 function log_pipe($msg) {
     $base = dirname(__FILE__);
     file_put_contents($base . '/logs/pipe.log', date('Y-m-d H:i:s') . " | $msg\n", FILE_APPEND);
+}
+
+function limpiarHTML($text) {
+    // Si contiene HTML, limpiarlo
+    if (preg_match('/<(html|body|div|p|br|span|table)/i', $text)) {
+        // Eliminar todos los tags HTML
+        $text = strip_tags($text);
+        // Decodificar entidades HTML (&lt; &gt; &quot; etc)
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // Limpiar espacios múltiples y saltos de línea excesivos
+        $text = preg_replace('/\n{3,}/', "\n\n", $text);
+        $text = preg_replace('/ {2,}/', ' ', $text);
+    }
+    return trim($text);
 }
 
 function decodeMIMEHeader($str) {

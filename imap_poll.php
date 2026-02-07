@@ -165,11 +165,14 @@ foreach ($emails as $num) {
         if ($u) $usuario_id = $u['id'];
     }
 
+    // Limpiar HTML si existe
+    $body_text = limpiarHTML($body_text);
+
     // Insertar respuesta
     $respuesta_id = null;
     if (!empty($body_text)) {
         $db->prepare("INSERT INTO respuestas (ticket_id, usuario_id, mensaje, es_email) VALUES (?, ?, ?, 1)")
-           ->execute([$ticket_id, $usuario_id, htmlspecialchars($body_text, ENT_QUOTES)]);
+           ->execute([$ticket_id, $usuario_id, $body_text]);
         $respuesta_id = $db->lastInsertId();
         log_imap("  → Respuesta insertada (ID: $respuesta_id)");
     }
@@ -201,6 +204,20 @@ imap_close($imap);
 log_imap("Polling finalizado");
 
 // ============ HELPERS ============
+function limpiarHTML($text) {
+    // Si contiene HTML, limpiarlo
+    if (preg_match('/<(html|body|div|p|br|span|table)/i', $text)) {
+        // Eliminar todos los tags HTML
+        $text = strip_tags($text);
+        // Decodificar entidades HTML (&lt; &gt; &quot; etc)
+        $text = html_entity_decode($text, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        // Limpiar espacios múltiples y saltos de línea excesivos
+        $text = preg_replace('/\n{3,}/', "\n\n", $text);
+        $text = preg_replace('/ {2,}/', ' ', $text);
+    }
+    return trim($text);
+}
+
 function decodeBody($content, $structure) {
     switch ($structure->encoding) {
         case ENC7BIT:    return $content;

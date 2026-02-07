@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['incidencia']) && $tic
 // Respuesta POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $ticket['estado'] !== 'terminado' && !isset($_POST['incidencia'])) {
     verificarTokenCSRF();
-    $msg = limpiar($_POST['mensaje'] ?? '');
+    $msg = trim($_POST['mensaje'] ?? '');
     if (!empty($msg)) {
         $db->prepare("INSERT INTO respuestas (ticket_id, usuario_id, mensaje) VALUES (?, ?, ?)")->execute([$tid, $uid, $msg]);
         $rid = $db->lastInsertId();

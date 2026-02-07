@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verificarTokenCSRF();
     $web_id = (int)($_POST['web_id'] ?? 0);
     $asunto = limpiar($_POST['asunto'] ?? '');
-    $mensaje = limpiar($_POST['mensaje'] ?? '');
+    $mensaje = trim($_POST['mensaje'] ?? '');
     $prioridad = $_POST['prioridad'] ?? 'media';
     $tags_sel = $_POST['tags'] ?? [];
 

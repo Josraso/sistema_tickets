@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['cambiar_estado'])) {
 // Respuesta admin
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['responder'])) {
     verificarTokenCSRF();
-    $msg = limpiar($_POST['mensaje'] ?? '');
+    $msg = trim($_POST['mensaje'] ?? '');
     $es_nota = isset($_POST['es_nota_interna']) ? 1 : 0;
     if (!empty($msg)) {
         // Añadir firma si existe y no es nota interna
