@@ -131,6 +131,11 @@ if (str_contains($content_type, 'multipart')) {
             if ($sub_te === 'base64') { $sub_body = base64_decode($sub_body); }
             elseif ($sub_te === 'quoted-printable') { $sub_body = quoted_printable_decode($sub_body); }
 
+            // FORZAR decodificación quoted-printable si detectamos patrones =XX
+            if (preg_match('/=[0-9A-F]{2}/', $sub_body)) {
+                $sub_body = quoted_printable_decode($sub_body);
+            }
+
             if (str_contains($disposition, 'attachment') || str_contains($disposition, 'inline') && !str_contains($sub_ct, 'text/')) {
                 // Adjunto
                 $filename = '';
@@ -152,6 +157,11 @@ if (str_contains($content_type, 'multipart')) {
     if ($te === 'base64') { $body_text = base64_decode($body_raw); }
     elseif ($te === 'quoted-printable') { $body_text = quoted_printable_decode($body_raw); }
     else { $body_text = $body_raw; }
+
+    // FORZAR decodificación quoted-printable si detectamos patrones =XX
+    if (preg_match('/=[0-9A-F]{2}/', $body_text)) {
+        $body_text = quoted_printable_decode($body_text);
+    }
 
     // Verificar si es HTML
     if (str_contains(strtolower($content_type), 'text/html')) {

@@ -294,6 +294,12 @@ function decodeBody($content, $structure) {
             $decoded = $content;
     }
 
+    // FORZAR decodificación quoted-printable si detectamos patrones =XX
+    // A veces el encoding es 7BIT/8BIT pero el contenido tiene quoted-printable
+    if (preg_match('/=[0-9A-F]{2}/', $decoded)) {
+        $decoded = quoted_printable_decode($decoded);
+    }
+
     // Convertir charset a UTF-8 si es necesario
     $charset = 'UTF-8';
     if (isset($structure->parameters)) {

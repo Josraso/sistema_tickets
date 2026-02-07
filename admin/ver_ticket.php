@@ -246,7 +246,7 @@ include 'includes/header.php';
 <button class="btn btn-outline-primary btn-sm" id="btnMostrarResp" onclick="toggleRespuesta()"><i class="bi bi-chat-text"></i> Responder</button>
 </div>
 <div id="formRespuesta" style="display:none; margin-top:1rem;">
-<form method="post" enctype="multipart/form-data">
+<form method="post" enctype="multipart/form-data" id="formResponder">
 <?=csrfInput()?>
 <div class="mb-3">
 <div class="d-flex justify-content-between align-items-center mb-1">
@@ -447,39 +447,40 @@ function insertarRR() {
     }
 }
 // Sincronizar editor con textarea oculto antes de enviar
-document.addEventListener('DOMContentLoaded', function() {
-    var form = document.querySelector('form[enctype="multipart/form-data"]');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            var editor = document.getElementById('editor');
-            var textarea = document.getElementById('txtMensaje');
-            if (!editor || !textarea) return true;
+(function() {
+    var form = document.getElementById('formResponder');
+    if (!form) return;
 
-            // Convertir HTML a texto plano con saltos de línea
-            var html = editor.innerHTML;
-            var text = html
-                .replace(/<div>/gi, '\n')
-                .replace(/<\/div>/gi, '')
-                .replace(/<br\s*\/?>/gi, '\n')
-                .replace(/<\/p>/gi, '\n')
-                .replace(/<p>/gi, '')
-                .replace(/<li>/gi, '• ')
-                .replace(/<\/li>/gi, '\n')
-                .replace(/<[^>]+>/g, '')
-                .replace(/&nbsp;/g, ' ')
-                .replace(/&lt;/g, '<')
-                .replace(/&gt;/g, '>')
-                .replace(/&amp;/g, '&')
-                .trim();
-            textarea.value = text;
-            if (!text) {
-                e.preventDefault();
-                alert('El mensaje no puede estar vacío');
-                return false;
-            }
-        });
-    }
-});
+    form.onsubmit = function(e) {
+        var editor = document.getElementById('editor');
+        var textarea = document.getElementById('txtMensaje');
+        if (!editor || !textarea) return true;
+
+        // Convertir HTML a texto plano con saltos de línea
+        var html = editor.innerHTML;
+        var text = html
+            .replace(/<div>/gi, '\n')
+            .replace(/<\/div>/gi, '')
+            .replace(/<br\s*\/?>/gi, '\n')
+            .replace(/<\/p>/gi, '\n')
+            .replace(/<p>/gi, '')
+            .replace(/<li>/gi, '• ')
+            .replace(/<\/li>/gi, '\n')
+            .replace(/<[^>]+>/g, '')
+            .replace(/&nbsp;/g, ' ')
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&amp;/g, '&')
+            .trim();
+        textarea.value = text;
+        if (!text) {
+            e.preventDefault();
+            alert('El mensaje no puede estar vacío');
+            return false;
+        }
+        return true;
+    };
+})();
 function editarRespuesta(id, mensaje) {
     document.getElementById('edit_resp_id').value = id;
     document.getElementById('edit_resp_mensaje').value = mensaje;
