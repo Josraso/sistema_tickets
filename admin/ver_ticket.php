@@ -236,7 +236,8 @@ include 'includes/header.php';
 </div>
 </div>
 </div>
-<p class="mt-1 mb-1"><?=nl2br(e($r['mensaje']))?></p>
+<p class="mt-1 mb-1" style="white-space: pre-wrap;"><?=e($r['mensaje'])?></p>
+<!-- DEBUG: <?=var_export($r['mensaje'], true)?> -->
 <?=renderArchivos($ar)?>
 </div>
 <?php endforeach; ?>
@@ -454,9 +455,6 @@ function enviarRespuesta() {
     // Obtener texto plano directamente (preserva saltos de línea)
     var text = editor.innerText || editor.textContent;
     text = text.trim();
-
-    console.log('Editor innerText:', text);
-    console.log('Saltos de línea encontrados:', (text.match(/\n/g) || []).length);
 
     if (!text) {
         alert('El mensaje no puede estar vacío');
