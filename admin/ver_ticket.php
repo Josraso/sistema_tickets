@@ -108,6 +108,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['asignar'])) {
     redirigir("ver_ticket.php?id=$tid");
 }
 
+// Editar respuesta
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['editar_respuesta'])) {
+    verificarTokenCSRF();
+    $rid = (int)($_POST['respuesta_id'] ?? 0);
+    $nuevo_msg = trim($_POST['respuesta_mensaje'] ?? '');
+    if (!empty($nuevo_msg) && $rid > 0) {
+        $db->prepare("UPDATE respuestas SET mensaje = ? WHERE id = ? AND ticket_id = ?")->execute([$nuevo_msg, $rid, $tid]);
+        registrarHistorial($tid, 'Respuesta editada', "Respuesta #$rid modificada por admin");
+        registrarLog('respuesta_editada', "Ticket #$tid, Respuesta #$rid");
+    }
+    redirigir("ver_ticket.php?id=$tid");
+}
+
+// Borrar respuesta
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['borrar_respuesta'])) {
+    verificarTokenCSRF();
+    $rid = (int)($_POST['respuesta_id'] ?? 0);
+    if ($rid > 0) {
+        // Borrar archivos asociados primero
+        $st = $db->prepare("SELECT * FROM archivos WHERE respuesta_id = ?");
+        $st->execute([$rid]);
+        foreach ($st->fetchAll() as $arch) {
+            if (file_exists($arch['ruta'])) unlink($arch['ruta']);
+        }
+        $db->prepare("DELETE FROM archivos WHERE respuesta_id = ?")->execute([$rid]);
+        // Borrar respuesta
+        $db->prepare("DELETE FROM respuestas WHERE id = ? AND ticket_id = ?")->execute([$rid, $tid]);
+        registrarHistorial($tid, 'Respuesta eliminada', "Respuesta #$rid borrada por admin");
+        registrarLog('respuesta_borrada', "Ticket #$tid, Respuesta #$rid");
+    }
+    redirigir("ver_ticket.php?id=$tid");
+}
+
 // Refetch completo (incluye cliente_email)
 $st = $db->prepare("SELECT t.*, w.nombre as web_nombre, u.nombre as cliente_nombre, u.email as cliente_email, u.telefono as cliente_tel FROM tickets t JOIN webs w ON t.web_id = w.id JOIN usuarios u ON t.usuario_id = u.id WHERE t.id = ?");
 $st->execute([$tid]); $ticket = $st->fetch();
@@ -185,10 +218,23 @@ include 'includes/header.php';
 <div class="card-body">
 <?php foreach ($respuestas as $r): ?>
 <?php $ar = obtenerArchivos($tid, $r['id']); ?>
-<div class="respuesta-<?=$r['es_nota_interna'] ? 'nota' : ($r['usuario_id'] == $ticket['usuario_id'] ? 'cliente' : 'admin')?>">
+<div class="respuesta-<?=$r['es_nota_interna'] ? 'nota' : ($r['usuario_id'] == $ticket['usuario_id'] ? 'cliente' : 'admin')?>" id="respuesta-<?=$r['id']?>">
 <div class="d-flex justify-content-between">
+<div>
 <strong><?=e($r['usu_nombre'])?> <?php if($r['es_nota_interna']): ?><span class="nota-label"><i class="bi bi-lock"></i> Nota interna</span><?php endif; ?></strong>
+</div>
+<div class="d-flex align-items-center gap-2">
 <small class="text-muted"><?=formatearFecha($r['fecha_creacion'])?></small>
+<div class="btn-group btn-group-sm" role="group">
+<button class="btn btn-outline-secondary btn-sm" onclick="editarRespuesta(<?=$r['id']?>, <?=htmlspecialchars(json_encode($r['mensaje']), ENT_QUOTES)?>)" title="Editar"><i class="bi bi-pencil"></i></button>
+<form method="post" style="display:inline" onsubmit="return confirm('¿Borrar esta respuesta?')">
+<?=csrfInput()?>
+<input type="hidden" name="borrar_respuesta" value="1">
+<input type="hidden" name="respuesta_id" value="<?=$r['id']?>">
+<button class="btn btn-outline-danger btn-sm" title="Borrar"><i class="bi bi-trash"></i></button>
+</form>
+</div>
+</div>
 </div>
 <p class="mt-1 mb-1"><?=nl2br(e($r['mensaje']))?></p>
 <?=renderArchivos($ar)?>
@@ -348,7 +394,37 @@ elseif (strpos($h['accion'], 'Respuesta') !== false) $cls = 'ev-resp';
 </div></div>
 </div>
 
+<!-- Modal editar respuesta -->
+<div class="modal fade" id="modalEditarRespuesta" tabindex="-1">
+<div class="modal-dialog"><div class="modal-content">
+<form method="post">
+<?=csrfInput()?>
+<input type="hidden" name="editar_respuesta" value="1">
+<input type="hidden" name="respuesta_id" id="edit_resp_id">
+<div class="modal-header">
+<h5 class="modal-title"><i class="bi bi-pencil"></i> Editar Respuesta</h5>
+<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+<div class="modal-body">
+<div class="mb-3">
+<label class="form-label">Mensaje</label>
+<textarea name="respuesta_mensaje" id="edit_resp_mensaje" class="form-control" rows="6" required></textarea>
+</div>
+</div>
+<div class="modal-footer">
+<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+<button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-check-lg"></i> Guardar</button>
+</div>
+</form>
+</div></div>
+</div>
+
 <script>
+function editarRespuesta(id, mensaje) {
+    document.getElementById('edit_resp_id').value = id;
+    document.getElementById('edit_resp_mensaje').value = mensaje;
+    new bootstrap.Modal(document.getElementById('modalEditarRespuesta')).show();
+}
 function insertarRR() {
     var sel = document.getElementById('selRR');
     var txt = document.getElementById('txtMensaje');

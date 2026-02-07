@@ -39,21 +39,13 @@ function configurarDuracionSesion($usuario_id) {
         $minutos = $usuario['sesion_duracion'] ?? 30; // Default 30 minutos
         $segundos = $minutos * 60;
 
-        // Configurar cookie de sesión con la duración especificada
-        $cookieParams = session_get_cookie_params();
-        session_set_cookie_params([
-            'lifetime' => $segundos,
-            'path' => $cookieParams['path'],
-            'domain' => $cookieParams['domain'],
-            'secure' => $cookieParams['secure'],
-            'httponly' => true,
-            'samesite' => 'Lax'
-        ]);
+        // Configurar duración de sesión (se puede cambiar en tiempo de ejecución)
+        ini_set('session.gc_maxlifetime', $segundos);
+        ini_set('session.cookie_lifetime', $segundos);
 
-        // Regenerar ID de sesión con nueva cookie
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            session_regenerate_id(true);
-        }
+        // Guardar timestamp para validación manual
+        $_SESSION['sesion_expira'] = time() + $segundos;
+        $_SESSION['sesion_duracion'] = $minutos;
     } catch (Exception $e) {
         // Silencio - usar default
     }

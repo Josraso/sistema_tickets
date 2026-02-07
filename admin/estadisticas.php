@@ -68,6 +68,7 @@ include 'includes/header.php';
 ?>
 <div class="d-flex justify-content-between align-items-center mb-4">
 <h4><i class="bi bi-bar-chart"></i> Estadísticas</h4>
+<a href="exportar_estadisticas.php" class="btn btn-success btn-sm"><i class="bi bi-file-earmark-excel"></i> Exportar a Excel</a>
 </div>
 
 <!-- Stats principales -->

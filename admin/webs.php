@@ -73,10 +73,15 @@ include 'includes/header.php';
 <td><span class="badge bg-primary"><?=$tc?></span></td>
 <td><small class="text-muted"><?=formatearFecha($w['fecha_creacion'])?></small></td>
 <td class="d-flex gap-1">
-<button class="btn btn-sm btn-outline-primary" onclick="editarWeb(<?=$w['id']?>, '<?=addslashes($w['nombre'])?>', '<?=addslashes($w['dominio'])?>', '<?=addslashes($w['notas'])?>')"><i class="bi bi-pencil"></i></button>
+<button class="btn btn-sm btn-outline-primary"
+    data-id="<?=$w['id']?>"
+    data-nombre="<?=e($w['nombre'])?>"
+    data-dominio="<?=e($w['dominio'])?>"
+    data-notas="<?=e($w['notas'])?>"
+    onclick="editarWeb(this)"><i class="bi bi-pencil"></i></button>
 <form method="post" style="display:inline"><?=csrfInput()?>
 <input type="hidden" name="accion" value="eliminar"><input type="hidden" name="id" value="<?=$w['id']?>">
-<button class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar web «<?=addslashes($w['nombre'])?>»?')"><i class="bi bi-trash"></i></button>
+<button class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar web «<?=e($w['nombre'])?>»?')"><i class="bi bi-trash"></i></button>
 </form>
 </td>
 </tr>
@@ -118,11 +123,11 @@ include 'includes/header.php';
 </div>
 
 <script>
-function editarWeb(id, nombre, dominio, notas) {
-    document.getElementById('edit_web_id').value = id;
-    document.getElementById('edit_nombre').value = nombre;
-    document.getElementById('edit_dominio').value = dominio;
-    document.getElementById('edit_notas').value = notas;
+function editarWeb(btn) {
+    document.getElementById('edit_web_id').value = btn.dataset.id;
+    document.getElementById('edit_nombre').value = btn.dataset.nombre;
+    document.getElementById('edit_dominio').value = btn.dataset.dominio;
+    document.getElementById('edit_notas').value = btn.dataset.notas;
     new bootstrap.Modal(document.getElementById('modalEditarWeb')).show();
 }
 </script>

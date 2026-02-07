@@ -12,7 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $nombre   = limpiar($_POST['nombre'] ?? '');
     $email    = limpiar($_POST['email'] ?? '');
     $telefono = limpiar($_POST['telefono'] ?? '');
-    $firma    = limpiar($_POST['firma'] ?? '');
+    $firma    = trim($_POST['firma'] ?? '');
     $sesion_duracion = $_POST['sesion_duracion'] ?? null;
     $pass     = $_POST['password'] ?? '';
     $pass2    = $_POST['password2'] ?? '';
