@@ -451,22 +451,12 @@ function enviarRespuesta() {
     var editor = document.getElementById('editor');
     var textarea = document.getElementById('txtMensaje');
 
-    // Convertir HTML a texto plano con saltos de línea
-    var html = editor.innerHTML;
-    var text = html
-        .replace(/<div>/gi, '\n')
-        .replace(/<\/div>/gi, '')
-        .replace(/<br\s*\/?>/gi, '\n')
-        .replace(/<\/p>/gi, '\n')
-        .replace(/<p>/gi, '')
-        .replace(/<li>/gi, '• ')
-        .replace(/<\/li>/gi, '\n')
-        .replace(/<[^>]+>/g, '')
-        .replace(/&nbsp;/g, ' ')
-        .replace(/&lt;/g, '<')
-        .replace(/&gt;/g, '>')
-        .replace(/&amp;/g, '&')
-        .trim();
+    // Obtener texto plano directamente (preserva saltos de línea)
+    var text = editor.innerText || editor.textContent;
+    text = text.trim();
+
+    console.log('Editor innerText:', text);
+    console.log('Saltos de línea encontrados:', (text.match(/\n/g) || []).length);
 
     if (!text) {
         alert('El mensaje no puede estar vacío');
