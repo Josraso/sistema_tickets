@@ -165,16 +165,45 @@ if (empty($body_text) && !empty($body_html)) {
     $body_text = htmlToPlainText($body_html);
 }
 
-// Limpiar body: eliminar quoted replies (líneas que empiezan con >)
-$body_lines = explode("\n", $body_text);
-$clean_lines = [];
-foreach ($body_lines as $line) {
-    $trimmed = trim($line);
-    if (str_starts_with($trimmed, '>')) continue;
-    if (str_starts_with($trimmed, '--') && strlen($trimmed) < 10) break; // firma
-    $clean_lines[] = $line;
+// Limpiar quoted replies - solo cortar si encuentra líneas de cita COMPLETAS
+$lines = explode("\n", $body_text);
+$clean = [];
+$found_quote = false;
+foreach ($lines as $line) {
+    $t = trim($line);
+
+    // Si ya encontramos una cita, ignorar todo lo demás
+    if ($found_quote) continue;
+
+    // Líneas que empiezan con > son citas
+    if (strpos($t, '>') === 0) {
+        $found_quote = true;
+        continue;
+    }
+
+    // Línea de firma (-- con nada más o poco más)
+    if (preg_match('/^--\s*$/', $t)) {
+        $found_quote = true;
+        break;
+    }
+
+    // Líneas de cita de Gmail/Outlook - DEBEN tener estructura completa:
+    // "El [día], [fecha], [email] escribió:" o "On [date], [name] wrote:"
+    if (preg_match('/^(El\s+\w+,?\s+\d+.*<.*@.*>.*escribi[oó]|On\s+.*\d+.*<.*@.*>.*wrote)\s*:/i', $t)) {
+        $found_quote = true;
+        break;
+    }
+
+    // Outlook: "De:", "From:", "Enviado:", "Sent:"
+    if (preg_match('/^(De|From|Enviado|Sent)\s*:/i', $t)) {
+        $found_quote = true;
+        break;
+    }
+
+    // Solo agregar si no es una línea vacía después de encontrar quote
+    $clean[] = $line;
 }
-$body_text = trim(implode("\n", $clean_lines));
+$body_text = trim(implode("\n", $clean));
 
 if (empty($body_text) && empty($attachments)) {
     log_pipe("Body y adjuntos vacíos para ticket #$ticket_id");

@@ -159,16 +159,42 @@ foreach ($emails as $num) {
         $body_text = htmlToPlainText($body_html);
     }
 
-    // Limpiar quoted replies
+    // Limpiar quoted replies - solo cortar si encuentra líneas de cita COMPLETAS
     $lines = explode("\n", $body_text);
     $clean = [];
+    $found_quote = false;
     foreach ($lines as $line) {
         $t = trim($line);
-        if (strpos($t, '>') === 0) continue;
-        if (strpos($t, '--') === 0 && strlen($t) < 10) break;
-        // Encabezado de cita Gmail (español / inglés) y Outlook
-        if (preg_match('/^(El\s+\w+.*escribi|On\s+\w+.*wrote\s*:|-{3,}\s*(Original Message|Mensaje original))/i', $t)) break;
-        if (preg_match('/(escribi[oó]|wrote)\s*:\s*$/i', $t)) break;
+
+        // Si ya encontramos una cita, ignorar todo lo demás
+        if ($found_quote) continue;
+
+        // Líneas que empiezan con > son citas
+        if (strpos($t, '>') === 0) {
+            $found_quote = true;
+            continue;
+        }
+
+        // Línea de firma (-- con nada más o poco más)
+        if (preg_match('/^--\s*$/', $t)) {
+            $found_quote = true;
+            break;
+        }
+
+        // Líneas de cita de Gmail/Outlook - DEBEN tener estructura completa:
+        // "El [día], [fecha], [email] escribió:" o "On [date], [name] wrote:"
+        if (preg_match('/^(El\s+\w+,?\s+\d+.*<.*@.*>.*escribi[oó]|On\s+.*\d+.*<.*@.*>.*wrote)\s*:/i', $t)) {
+            $found_quote = true;
+            break;
+        }
+
+        // Outlook: "De:", "From:", "Enviado:", "Sent:"
+        if (preg_match('/^(De|From|Enviado|Sent)\s*:/i', $t)) {
+            $found_quote = true;
+            break;
+        }
+
+        // Solo agregar si no es una línea vacía después de encontrar quote
         $clean[] = $line;
     }
     $body_text = trim(implode("\n", $clean));
@@ -249,14 +275,42 @@ function htmlToPlainText($html) {
 }
 
 function decodeBody($content, $structure) {
+    // Decodificar según encoding
     switch ($structure->encoding) {
-        case ENC7BIT:    return $content;
-        case ENC8BIT:    return $content;
-        case ENCBINARY:  return $content;
-        case ENCBASE64:  return base64_decode($content);
-        case ENCQUOTEDP: return quoted_printable_decode($content);
-        default:         return $content;
+        case ENC7BIT:
+        case ENC8BIT:
+            $decoded = $content;
+            break;
+        case ENCBINARY:
+            $decoded = $content;
+            break;
+        case ENCBASE64:
+            $decoded = base64_decode($content);
+            break;
+        case ENCQUOTEDP:
+            $decoded = quoted_printable_decode($content);
+            break;
+        default:
+            $decoded = $content;
     }
+
+    // Convertir charset a UTF-8 si es necesario
+    $charset = 'UTF-8';
+    if (isset($structure->parameters)) {
+        foreach ($structure->parameters as $param) {
+            if (strtolower($param->attribute) === 'charset') {
+                $charset = $param->value;
+                break;
+            }
+        }
+    }
+
+    // Convertir a UTF-8 si no lo es
+    if (strtoupper($charset) !== 'UTF-8') {
+        $decoded = mb_convert_encoding($decoded, 'UTF-8', $charset);
+    }
+
+    return $decoded;
 }
 
 function getFilename($part) {
