@@ -4,7 +4,7 @@
  * Pantalla única multi-paso sin recarga de página.
  */
 
-session_start();
+require_once __DIR__ . "/includes/session_config.php";
 
 // Si ya existe config.php, ir a login (ya instalado)
 if (file_exists(__DIR__ . '/config.php') && !isset($_GET['reinstalar'])) {

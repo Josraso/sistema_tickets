@@ -1,6 +1,6 @@
 <?php
 require_once 'config.php';
-session_start();
+require_once __DIR__ . "/includes/session_config.php";
 if (estaLogueado()) redirigir('login.php');
 
 $db = getDB();

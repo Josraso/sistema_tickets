@@ -1,11 +1,3 @@
-# Configuración de sesiones largas (30 días)
-php_value session.gc_maxlifetime 2592000
-php_value session.cookie_lifetime 2592000
-
-# Auto-incluir configuración de sesión antes de cada script PHP
-# IMPORTANTE: Cambiar /ruta/completa por la ruta real del servidor
-# php_value auto_prepend_file "/var/www/vhosts/pequemovil.es/httpdocs/includes/session_config.php"
-
 # Protección adicional
 <Files "config.php">
     Require all denied

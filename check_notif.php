@@ -1,7 +1,7 @@
 <?php
 /* Endpoint de polling de notificaciones — devuelve JSON con eventos no leídos */
 require_once __DIR__ . '/config.php';
-session_start();
+require_once __DIR__ . "/includes/session_config.php";
 
 header('Content-Type: application/json');
 header('Cache-Control: no-store');
