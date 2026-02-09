@@ -34,10 +34,10 @@ function obtenerDuracionSesion($usuario_id) {
         $st = $db->prepare("SELECT sesion_duracion FROM usuarios WHERE id = ?");
         $st->execute([$usuario_id]);
         $usuario = $st->fetch();
-        $minutos = $usuario['sesion_duracion'] ?? 30; // Default 30 minutos
+        $minutos = $usuario['sesion_duracion'] ?? 43200; // Default 30 días
         return $minutos * 60; // Devolver segundos
     } catch (Exception $e) {
-        return 1800; // Default 30 minutos
+        return 2592000; // Default 30 días en segundos
     }
 }
 
