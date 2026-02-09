@@ -66,7 +66,7 @@ if (!$emails) {
 
 sort($emails);
 $db = getDB();
-$exts_permitidas = ['jpg','jpeg','png','gif','zip','rar','pdf'];
+$exts_permitidas = ['jpg','jpeg','png','gif','webp','pdf','zip','rar','7z','doc','docx','xls','xlsx','csv','txt','ppt','pptx'];
 
 foreach ($emails as $num) {
     $header = imap_header($imap, $num);

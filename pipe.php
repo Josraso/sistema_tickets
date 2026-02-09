@@ -248,7 +248,7 @@ if (!empty($body_text)) {
 }
 
 // Guardar adjuntos permitidos
-$exts_permitidas = ['jpg','jpeg','png','gif','zip','rar','pdf'];
+$exts_permitidas = ['jpg','jpeg','png','gif','webp','pdf','zip','rar','7z','doc','docx','xls','xlsx','csv','txt','ppt','pptx'];
 foreach ($attachments as $att) {
     $ext = strtolower(pathinfo($att['name'], PATHINFO_EXTENSION));
     if (!in_array($ext, $exts_permitidas)) { log_pipe("Adjunto rechazado (extensión): " . $att['name']); continue; }

@@ -169,7 +169,16 @@ function obtenerMaxSubida() {
 }
 
 function extensionesPermitidas() {
-    return ['jpg', 'jpeg', 'png', 'gif', 'zip', 'rar', 'pdf'];
+    return [
+        'jpg', 'jpeg', 'png', 'gif', 'webp',  // Imágenes
+        'pdf',                                  // PDF
+        'zip', 'rar', '7z',                    // Comprimidos
+        'doc', 'docx',                         // Word
+        'xls', 'xlsx',                         // Excel
+        'csv',                                  // CSV
+        'txt',                                  // Texto plano
+        'ppt', 'pptx'                          // PowerPoint
+    ];
 }
 
 function uploadArchivo($file, $ticket_id, $respuesta_id = null) {
@@ -209,11 +218,18 @@ function renderArchivos($archivos) {
         $url = '/uploads/' . htmlspecialchars($a['nombre_guardado']);
         $ext = strtolower($a['extension']);
         $icono = 'bi-paperclip';
-        if (in_array($ext, ['jpg','jpeg','png','gif'])) $icono = 'bi-image';
-        elseif ($ext === 'pdf') $icono = 'bi-filetype-pdf';
-        elseif (in_array($ext, ['zip','rar'])) $icono = 'bi-file-zip';
 
-        if (in_array($ext, ['jpg','jpeg','png','gif'])) {
+        // Asignar iconos según tipo de archivo
+        if (in_array($ext, ['jpg','jpeg','png','gif','webp'])) $icono = 'bi-image';
+        elseif ($ext === 'pdf') $icono = 'bi-filetype-pdf';
+        elseif (in_array($ext, ['zip','rar','7z'])) $icono = 'bi-file-zip';
+        elseif (in_array($ext, ['doc','docx'])) $icono = 'bi-file-word';
+        elseif (in_array($ext, ['xls','xlsx'])) $icono = 'bi-file-excel';
+        elseif ($ext === 'csv') $icono = 'bi-filetype-csv';
+        elseif ($ext === 'txt') $icono = 'bi-file-text';
+        elseif (in_array($ext, ['ppt','pptx'])) $icono = 'bi-file-ppt';
+
+        if (in_array($ext, ['jpg','jpeg','png','gif','webp'])) {
             $html .= '<div class="archivo-item archivo-img" onclick="abrirVisor(\'' . $url . '\')">'
                    . '<img src="' . $url . '" alt="' . htmlspecialchars($a['nombre_original']) . '" class="archivo-thumb">'
                    . '<span class="archivo-nombre">' . htmlspecialchars($a['nombre_original']) . '</span>'
